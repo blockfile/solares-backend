@@ -1,0 +1,4050 @@
+[
+  {
+    "materialName": "MONO 375w",
+    "unit": null,
+    "basePrice": 3900.0,
+    "section": "OTHER",
+    "sourcePage": 3,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "MONO 410w (CS6R-410MS)",
+    "unit": null,
+    "basePrice": 4000.0,
+    "section": "OTHER",
+    "sourcePage": 3,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "MONO 580w (CS6W-580TB-AG)",
+    "unit": null,
+    "basePrice": 4500.0,
+    "section": "OTHER",
+    "sourcePage": 3,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "MONO 585w (CS6W-585TB-AG)",
+    "unit": null,
+    "basePrice": 4500.0,
+    "section": "OTHER",
+    "sourcePage": 3,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "MONO 590w (CS6W-590TB-AG)",
+    "unit": null,
+    "basePrice": 4550.0,
+    "section": "OTHER",
+    "sourcePage": 3,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "MONO 610w (CS6.1-72TB-610)",
+    "unit": null,
+    "basePrice": 4700.0,
+    "section": "OTHER",
+    "sourcePage": 3,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "MONO 615w (CS6.2-66TB-615)",
+    "unit": null,
+    "basePrice": 4750.0,
+    "section": "OTHER",
+    "sourcePage": 3,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "MONO 620w (CS6.2-66TB-620)",
+    "unit": null,
+    "basePrice": 4800.0,
+    "section": "OTHER",
+    "sourcePage": 3,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "MONO 700w (CS7N-700TB-AG)",
+    "unit": null,
+    "basePrice": 5300.0,
+    "section": "OTHER",
+    "sourcePage": 3,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "MONO 705w (CS7N-705TB-AG)",
+    "unit": null,
+    "basePrice": 5350.0,
+    "section": "OTHER",
+    "sourcePage": 3,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "MONO 710w (CS7N-710TB-AG)",
+    "unit": null,
+    "basePrice": 5400.0,
+    "section": "OTHER",
+    "sourcePage": 3,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "MONO 455w (ODA455-30V-MH)",
+    "unit": null,
+    "basePrice": 3450.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "MONO 500w (ODA500-33V-MH)",
+    "unit": null,
+    "basePrice": 3650.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 32
+  },
+  {
+    "materialName": "MONO 550w (ODA550-36V-MHD)",
+    "unit": null,
+    "basePrice": 4100.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 33
+  },
+  {
+    "materialName": "MONO 550w (ODA550-30V-MH)",
+    "unit": null,
+    "basePrice": 4100.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 34
+  },
+  {
+    "materialName": "MONO 580w (ODA580-36VMHD)",
+    "unit": null,
+    "basePrice": 4300.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 35
+  },
+  {
+    "materialName": "MONO 590w (ODA590-36VMHD)",
+    "unit": null,
+    "basePrice": 4350.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 36
+  },
+  {
+    "materialName": "MONO 600w (ODA600-36V-MHD)",
+    "unit": null,
+    "basePrice": 4450.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 37
+  },
+  {
+    "materialName": "MONO 610w (ODA610-33VMHDRz)",
+    "unit": null,
+    "basePrice": 4550.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 38
+  },
+  {
+    "materialName": "MONO 620w (ODA620-33V-MHDRz)",
+    "unit": null,
+    "basePrice": 4350.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 39
+  },
+  {
+    "materialName": "MONO 700w (ODA700-33V-MHD)",
+    "unit": null,
+    "basePrice": 4850.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 40
+  },
+  {
+    "materialName": "MONO 720w (ODA720-66V-MHD)",
+    "unit": null,
+    "basePrice": 5150.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 41
+  },
+  {
+    "materialName": "20W",
+    "unit": null,
+    "basePrice": 9700.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 33
+  },
+  {
+    "materialName": "100w",
+    "unit": null,
+    "basePrice": 3800.0,
+    "section": "\u201cALL IN ONE\u201d",
+    "sourcePage": 23,
+    "sourceLine": 6
+  },
+  {
+    "materialName": "150w",
+    "unit": null,
+    "basePrice": 4000.0,
+    "section": "\u201cALL IN ONE\u201d",
+    "sourcePage": 23,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "200w",
+    "unit": null,
+    "basePrice": 4900.0,
+    "section": "\u201cALL IN ONE\u201d",
+    "sourcePage": 23,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "340w",
+    "unit": null,
+    "basePrice": 3300.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 51
+  },
+  {
+    "materialName": "350w",
+    "unit": null,
+    "basePrice": 3500.0,
+    "section": "CEBU/DAVAO",
+    "sourcePage": 3,
+    "sourceLine": 52
+  },
+  {
+    "materialName": "3.6kw (SUN-3.6k-SG04LP1-EU)",
+    "unit": null,
+    "basePrice": 39610.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 2
+  },
+  {
+    "materialName": "5kw (SUN-5k-SG03LP1-EU-P)",
+    "unit": null,
+    "basePrice": 45268.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 3
+  },
+  {
+    "materialName": "5kw (SUN-5k-SG04LP1-EU-SM2)",
+    "unit": null,
+    "basePrice": 41732.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 4
+  },
+  {
+    "materialName": "6kw (SUN-6k-SG03LP1-EU-P)",
+    "unit": null,
+    "basePrice": 41800.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 5
+  },
+  {
+    "materialName": "6kw (SUN-6k-SG04LP1-EU-SM2)",
+    "unit": null,
+    "basePrice": 41800.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 6
+  },
+  {
+    "materialName": "8kw (SUN-8k-SG05LP1-EU)",
+    "unit": null,
+    "basePrice": 57700.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "8kw (SUN-8k-SG05LP1-SM2)",
+    "unit": null,
+    "basePrice": 57700.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "10kw (SUN-10k-SG02LP1-EU-AM3)",
+    "unit": null,
+    "basePrice": 80100.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "12kw (SUN-12k-SG01LP1-EU)",
+    "unit": null,
+    "basePrice": 83900.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "12kw (SUN-12k-SG02LP1-EU-AM3)",
+    "unit": null,
+    "basePrice": 83900.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 11
+  },
+  {
+    "materialName": "16kw (SUN-16k-SG01LP1-EU)",
+    "unit": null,
+    "basePrice": 108900.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "18kw (SUN-18k-SG01LP1-EU-AM3-P)",
+    "unit": null,
+    "basePrice": 135000.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "12kw (SUN-12k-SG04LP3-EU)",
+    "unit": null,
+    "basePrice": 95588.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "20kw (SUN-20k-SG01HP3-EU-AM2)",
+    "unit": null,
+    "basePrice": 93800.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "20kw (SUN-20K-SG05LP3-EU-SM2)",
+    "unit": null,
+    "basePrice": 139800.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "30kw (SUN-30k-SG02HP3-EU-AM3)",
+    "unit": null,
+    "basePrice": 152500.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "50kw (SUN-50K-SG01HP3-EU-BM4)",
+    "unit": null,
+    "basePrice": 228000.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "Eastron Smart Meter (w/ 3CT)",
+    "unit": null,
+    "basePrice": 11000.0,
+    "section": "DEYE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "5kw (S6-EH1P5K-L-PLUS)",
+    "unit": null,
+    "basePrice": 35000.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "6kw (S5-EH1P6k-L)",
+    "unit": null,
+    "basePrice": 41000.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "6kw (S6-EH1P6k-L-EU)",
+    "unit": null,
+    "basePrice": 41000.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "6kw (S6-EH1P6k-L-PRO)",
+    "unit": null,
+    "basePrice": 41000.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "6kw (S6-EH1P6k-L-PLUS)",
+    "unit": null,
+    "basePrice": 41000.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 27
+  },
+  {
+    "materialName": "8kw (S6-EH1P8k-L-PRO)",
+    "unit": null,
+    "basePrice": 55000.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "8kw (S6-EH1P8k-L-PLUS)",
+    "unit": null,
+    "basePrice": 55000.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 29
+  },
+  {
+    "materialName": "12kw (S6-EH1P12k03-NV-YD-L)",
+    "unit": null,
+    "basePrice": 78000.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "16kw (S6-EH1P16k03-NV-YD-L)",
+    "unit": null,
+    "basePrice": 107500.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "15kw (S6-EH3P15k02-NV-YD-L)",
+    "unit": null,
+    "basePrice": 130000.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 33
+  },
+  {
+    "materialName": "30kw (S6-EH3P30k-H-LV)",
+    "unit": null,
+    "basePrice": 258500.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 34
+  },
+  {
+    "materialName": "50kw (S6-EH3P50K-H)",
+    "unit": null,
+    "basePrice": 309500.0,
+    "section": "SOLIS Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 4,
+    "sourceLine": 35
+  },
+  {
+    "materialName": "6kw (HESP4860S100-H)",
+    "unit": null,
+    "basePrice": 35000.0,
+    "section": "SRNE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 2
+  },
+  {
+    "materialName": "8kw(HESP4880SD190-H)",
+    "unit": null,
+    "basePrice": 50000.0,
+    "section": "SRNE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 3
+  },
+  {
+    "materialName": "12kw (HESP48120S200-H)",
+    "unit": null,
+    "basePrice": 69000.0,
+    "section": "SRNE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 4
+  },
+  {
+    "materialName": "18kw (HESP48120S200-H)",
+    "unit": null,
+    "basePrice": 110000.0,
+    "section": "SRNE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 5
+  },
+  {
+    "materialName": "12kw (HESP120SH3) HV",
+    "unit": null,
+    "basePrice": 69000.0,
+    "section": "SRNE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "20kw (HESP48200SH3)",
+    "unit": null,
+    "basePrice": 115000.0,
+    "section": "SRNE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "60kw (IESP600SH3)",
+    "unit": null,
+    "basePrice": 225000.0,
+    "section": "SRNE Hybrid Inverter ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "5kw (SUN-5k-G05P1-EU-AM2)",
+    "unit": null,
+    "basePrice": 20000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 5,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "6kw (SUN-6k-G05P1-EU-AM2)",
+    "unit": null,
+    "basePrice": 21000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 5,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "8kw (SUN-8k-G02P1-EU-AM2)",
+    "unit": null,
+    "basePrice": 28000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 5,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "10kw (SUN-10k-G02P1-EU-AM2)",
+    "unit": null,
+    "basePrice": 31000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 5,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "20kw (SUN-20k-G02-LV)",
+    "unit": null,
+    "basePrice": 95000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 5,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "30kw (SUN-30k-G02-LV)",
+    "unit": null,
+    "basePrice": 135000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 5,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "50kw (SUN-50k-G-LV)",
+    "unit": null,
+    "basePrice": 165000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 5,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "50kw (SUN-50k-G04P3-EU-AM4-LV)",
+    "unit": null,
+    "basePrice": 165000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 5,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "60kw (SUN-60k-G01P3-EU-AM8-LV)",
+    "unit": null,
+    "basePrice": 175000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 5,
+    "sourceLine": 22
+  },
+  {
+    "materialName": "1kw (S6-GR1P1K-M)",
+    "unit": null,
+    "basePrice": 13000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "1.5kw (S6-GR1P1.5K-M)",
+    "unit": null,
+    "basePrice": 15500.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "2.5kw (S6-GR1P2.5-M)",
+    "unit": null,
+    "basePrice": 16500.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "3kw (S6-GR1P3K-M)",
+    "unit": null,
+    "basePrice": 18000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 27
+  },
+  {
+    "materialName": "3.6kw (S6-GR1P3.K-M)",
+    "unit": null,
+    "basePrice": 18500.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "5kw (S6-GR1P5k)",
+    "unit": null,
+    "basePrice": 24600.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 29
+  },
+  {
+    "materialName": "5kw (S6-GR1P5K-S)",
+    "unit": null,
+    "basePrice": 24600.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "6kw (S6-GR1P6k)",
+    "unit": null,
+    "basePrice": 24600.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "6Skw (S6-GR1P6k-S)",
+    "unit": null,
+    "basePrice": 24600.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 32
+  },
+  {
+    "materialName": "8kw (S5-GR1P8K)",
+    "unit": null,
+    "basePrice": 39000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 33
+  },
+  {
+    "materialName": "10kw (S5-GR1P10k)",
+    "unit": null,
+    "basePrice": 46000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 34
+  },
+  {
+    "materialName": "10kw (S6-GR1P10k03-NV-ND)",
+    "unit": null,
+    "basePrice": 46000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 5,
+    "sourceLine": 35
+  },
+  {
+    "materialName": "10kw (S5-GR3P10k-LV)",
+    "unit": null,
+    "basePrice": 63500.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "10kw (Solis-3P10k-4G-LV)",
+    "unit": null,
+    "basePrice": 63500.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "15kw (Solis-15k-LV-5G)",
+    "unit": null,
+    "basePrice": 100000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "20kw (Solis-20k-LV-5G)",
+    "unit": null,
+    "basePrice": 120000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "20kw (Solis-S5-GR3P20K)",
+    "unit": null,
+    "basePrice": 120000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 11
+  },
+  {
+    "materialName": "25kw (Solis-25k-LV)",
+    "unit": null,
+    "basePrice": 130000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "25kw (Solis-S5-GC25k-LV)",
+    "unit": null,
+    "basePrice": 130000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "30kw (Solis-30k-LV)",
+    "unit": null,
+    "basePrice": 145000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "30kw (Solis-S5-GC30K) 400v",
+    "unit": null,
+    "basePrice": 145000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "50kw (Solis-S5-GC50K-LV ) 220v",
+    "unit": null,
+    "basePrice": 214000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "50kw (Solis-50k-LV-5G-PRO) 220v",
+    "unit": null,
+    "basePrice": 214000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "50kw (Solis-S5-GC50k) 400v",
+    "unit": null,
+    "basePrice": 138000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "60kw (Solis-60k-LV-5G-PRO)",
+    "unit": null,
+    "basePrice": 221000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "60kw (Solis-S5-GC60KLV)",
+    "unit": null,
+    "basePrice": 221000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "75kw (Solis-75k-LV-5G-PRO)",
+    "unit": null,
+    "basePrice": 237000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "75kw (Solis-S6-GC75K-LV)",
+    "unit": null,
+    "basePrice": 237000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 22
+  },
+  {
+    "materialName": "100kw (S6-GC100K)",
+    "unit": null,
+    "basePrice": 228000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "100kw (Solis-100k-5G-PRO) 400v",
+    "unit": null,
+    "basePrice": 228000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "110kw (Solis-S5-GC110K)",
+    "unit": null,
+    "basePrice": 217000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "125kw (Solis-S5-GC125K-HV)",
+    "unit": null,
+    "basePrice": 253000.0,
+    "section": "SOLIS Grid Tie Single ALL BRANCHES",
+    "sourcePage": 6,
+    "sourceLine": 27
+  },
+  {
+    "materialName": "1.1kw G2",
+    "unit": null,
+    "basePrice": 18500.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 3
+  },
+  {
+    "materialName": "1.6kw G2",
+    "unit": null,
+    "basePrice": 20500.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 4
+  },
+  {
+    "materialName": "2.2kw G2",
+    "unit": null,
+    "basePrice": 22500.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 5
+  },
+  {
+    "materialName": "3kw G2 (SINGLE MPPT)",
+    "unit": null,
+    "basePrice": 16000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 6
+  },
+  {
+    "materialName": "3kw G2 (DUAL MPPT)",
+    "unit": null,
+    "basePrice": 26000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "4kw G2",
+    "unit": null,
+    "basePrice": 25000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "5kw G2",
+    "unit": null,
+    "basePrice": 27000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "6kw G2",
+    "unit": null,
+    "basePrice": 28000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "7.5kw G2",
+    "unit": null,
+    "basePrice": 30000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 11
+  },
+  {
+    "materialName": "1.1kw G3",
+    "unit": null,
+    "basePrice": 11500.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "1.6kw G3",
+    "unit": null,
+    "basePrice": 12500.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "2.2kw G3",
+    "unit": null,
+    "basePrice": 13500.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "2.7kw G3",
+    "unit": null,
+    "basePrice": 15000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "3kw G3",
+    "unit": null,
+    "basePrice": 16000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "3.3kw G3",
+    "unit": null,
+    "basePrice": 16500.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "5kw G3",
+    "unit": null,
+    "basePrice": 26000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "6kw G3",
+    "unit": null,
+    "basePrice": 27000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "7.5kw G3",
+    "unit": null,
+    "basePrice": 30000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "7.7kw G3",
+    "unit": null,
+    "basePrice": 30000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "10kw G3",
+    "unit": null,
+    "basePrice": 55000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 22
+  },
+  {
+    "materialName": "11kw (11KTL-X)",
+    "unit": null,
+    "basePrice": 64000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "20kw (20000TL-G2)",
+    "unit": null,
+    "basePrice": 86000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "30kw (30000TL-G2)",
+    "unit": null,
+    "basePrice": 122000.0,
+    "section": "Single Phase Inverter",
+    "sourcePage": 7,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "3kw",
+    "unit": null,
+    "basePrice": 34000.0,
+    "section": "GOODWE Grid Tie Inverter ALL BRANCHES",
+    "sourcePage": 7,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "5kw",
+    "unit": null,
+    "basePrice": 44000.0,
+    "section": "GOODWE Grid Tie Inverter ALL BRANCHES",
+    "sourcePage": 7,
+    "sourceLine": 29
+  },
+  {
+    "materialName": "Limiter",
+    "unit": null,
+    "basePrice": 1500.0,
+    "section": "GOODWE Grid Tie Inverter ALL BRANCHES",
+    "sourcePage": 7,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "1kw 12v / 24v",
+    "unit": null,
+    "basePrice": 5800.0,
+    "section": "NEW CNBOU Offgrid Inverter NATIONWIDE",
+    "sourcePage": 8,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "2kw 12v / 24v",
+    "unit": null,
+    "basePrice": 12500.0,
+    "section": "CNBOU Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "3kw 12v / 24v / 48v",
+    "unit": null,
+    "basePrice": 19500.0,
+    "section": "NEW CNBOU Offgrid Inverter NATIONWIDE",
+    "sourcePage": 8,
+    "sourceLine": 32
+  },
+  {
+    "materialName": "4kw 24v / 48v",
+    "unit": null,
+    "basePrice": 22000.0,
+    "section": "SNAT Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 5
+  },
+  {
+    "materialName": "5kw 24v / 48v",
+    "unit": null,
+    "basePrice": 25000.0,
+    "section": "SNAT Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 6
+  },
+  {
+    "materialName": "6kw 48v",
+    "unit": null,
+    "basePrice": 33000.0,
+    "section": "NEW CNBOU Offgrid Inverter NATIONWIDE",
+    "sourcePage": 8,
+    "sourceLine": 33
+  },
+  {
+    "materialName": "8kw 48v",
+    "unit": null,
+    "basePrice": 55000.0,
+    "section": "NEW CNBOU Offgrid Inverter NATIONWIDE",
+    "sourcePage": 8,
+    "sourceLine": 34
+  },
+  {
+    "materialName": "8kw 96v",
+    "unit": null,
+    "basePrice": 55000.0,
+    "section": "SNAT Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "10kw 48v (Wall)",
+    "unit": null,
+    "basePrice": 55000.0,
+    "section": "SNAT Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "10kw 96v (Wall)",
+    "unit": null,
+    "basePrice": 48000.0,
+    "section": "SNAT Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 11
+  },
+  {
+    "materialName": "10kw 96v (Tower)",
+    "unit": null,
+    "basePrice": 70000.0,
+    "section": "SNAT Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "12kw 96v",
+    "unit": null,
+    "basePrice": 89000.0,
+    "section": "SNAT Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "20kw 192v",
+    "unit": null,
+    "basePrice": 155000.0,
+    "section": "SNAT Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "200ah 96v (LITHIUM BATTERY)",
+    "unit": null,
+    "basePrice": 250000.0,
+    "section": "SNAT Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "48v 60a scc",
+    "unit": null,
+    "basePrice": 7200.0,
+    "section": "SNAT MPPT Solar Charge Controller",
+    "sourcePage": 8,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "48v 80a scc",
+    "unit": null,
+    "basePrice": 13500.0,
+    "section": "SNAT MPPT Solar Charge Controller",
+    "sourcePage": 8,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "48v 100a scc",
+    "unit": null,
+    "basePrice": 19000.0,
+    "section": "SNAT MPPT Solar Charge Controller",
+    "sourcePage": 8,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "96v 60a scc",
+    "unit": null,
+    "basePrice": 11000.0,
+    "section": "SNAT MPPT Solar Charge Controller",
+    "sourcePage": 8,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "96v 80a scc",
+    "unit": null,
+    "basePrice": 16000.0,
+    "section": "SNAT MPPT Solar Charge Controller",
+    "sourcePage": 8,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "96v 100a scc",
+    "unit": null,
+    "basePrice": 19000.0,
+    "section": "SNAT MPPT Solar Charge Controller",
+    "sourcePage": 8,
+    "sourceLine": 22
+  },
+  {
+    "materialName": "192v 100a scc",
+    "unit": null,
+    "basePrice": 49800.0,
+    "section": "SNAT MPPT Solar Charge Controller",
+    "sourcePage": 8,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "500w 12v",
+    "unit": null,
+    "basePrice": 3700.0,
+    "section": "CNBOU Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "600w 12v",
+    "unit": null,
+    "basePrice": 3900.0,
+    "section": "CNBOU Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 8,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "600w",
+    "unit": null,
+    "basePrice": 37800.0,
+    "section": "OTHER",
+    "sourcePage": 8,
+    "sourceLine": 43
+  },
+  {
+    "materialName": "1kw 48v",
+    "unit": null,
+    "basePrice": 39800.0,
+    "section": "OTHER",
+    "sourcePage": 8,
+    "sourceLine": 44
+  },
+  {
+    "materialName": "3kw 24v (HF2430S60-100v)",
+    "unit": null,
+    "basePrice": 19000.0,
+    "section": "SRNE Hybrid Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 9,
+    "sourceLine": 2
+  },
+  {
+    "materialName": "3kw 24v (HF2430S80-H)",
+    "unit": null,
+    "basePrice": 22000.0,
+    "section": "SRNE Hybrid Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 9,
+    "sourceLine": 3
+  },
+  {
+    "materialName": "5kw 48v (MF4850S80-H)",
+    "unit": null,
+    "basePrice": 29000.0,
+    "section": "SRNE Hybrid Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 9,
+    "sourceLine": 4
+  },
+  {
+    "materialName": "8kw 48v (ASF4880S180-H)",
+    "unit": null,
+    "basePrice": 68000.0,
+    "section": "SRNE Hybrid Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 9,
+    "sourceLine": 5
+  },
+  {
+    "materialName": "10kw (ASF48100S200-H)",
+    "unit": null,
+    "basePrice": 72000.0,
+    "section": "SRNE Hybrid Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 9,
+    "sourceLine": 6
+  },
+  {
+    "materialName": "5kw 48v (HFP4850S80-H)",
+    "unit": null,
+    "basePrice": 29000.0,
+    "section": "WITH PARALLEL",
+    "sourcePage": 9,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "8kw 48v (ASP4880S180-H)",
+    "unit": null,
+    "basePrice": 55000.0,
+    "section": "WITH PARALLEL",
+    "sourcePage": 9,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "10kw 48v (ASP48100S200-H)",
+    "unit": null,
+    "basePrice": 60000.0,
+    "section": "WITH PARALLEL",
+    "sourcePage": 9,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "1kw 12v 40A",
+    "unit": null,
+    "basePrice": 9800.0,
+    "section": "SNADI Hybrid Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 9,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "3kw 24v 60A",
+    "unit": null,
+    "basePrice": 20800.0,
+    "section": "SNADI Hybrid Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 9,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "3kw 48v 60A",
+    "unit": null,
+    "basePrice": 21800.0,
+    "section": "SNADI Hybrid Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 9,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "5kw 48v 60A",
+    "unit": null,
+    "basePrice": 48500.0,
+    "section": "SNADI Hybrid Offgrid Inverter ALL BRANCHES",
+    "sourcePage": 9,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "10kw 96v (w/ 60ah mppt)",
+    "unit": null,
+    "basePrice": 109500.0,
+    "section": "OTHER",
+    "sourcePage": 9,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "15kw 192v (w/ 100ah mppt)",
+    "unit": null,
+    "basePrice": 209000.0,
+    "section": "OTHER",
+    "sourcePage": 9,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "20kw 192v (w/ 50ah mppt)",
+    "unit": null,
+    "basePrice": 199800.0,
+    "section": "OTHER",
+    "sourcePage": 9,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "20kw 192v (w/ 100ah mppt)",
+    "unit": null,
+    "basePrice": 225000.0,
+    "section": "OTHER",
+    "sourcePage": 9,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "30kw 192v",
+    "unit": null,
+    "basePrice": 288000.0,
+    "section": "OTHER",
+    "sourcePage": 9,
+    "sourceLine": 27
+  },
+  {
+    "materialName": "80kw 380v (3phase)",
+    "unit": null,
+    "basePrice": 420000.0,
+    "section": "OTHER",
+    "sourcePage": 9,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "24v 280ah (1c)",
+    "unit": null,
+    "basePrice": 44000.0,
+    "section": "MENRED German Lithium",
+    "sourcePage": 10,
+    "sourceLine": 4
+  },
+  {
+    "materialName": "51.2v 120ah (1c)",
+    "unit": null,
+    "basePrice": 50500.0,
+    "section": "MENRED German Lithium",
+    "sourcePage": 10,
+    "sourceLine": 5
+  },
+  {
+    "materialName": "51.2v 240ah (1c)",
+    "unit": null,
+    "basePrice": 102000.0,
+    "section": "MENRED German Lithium",
+    "sourcePage": 10,
+    "sourceLine": 6
+  },
+  {
+    "materialName": "51.2v 360ah (1c)",
+    "unit": null,
+    "basePrice": 144000.0,
+    "section": "MENRED German Lithium",
+    "sourcePage": 10,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "51.2v 480ah (1c)",
+    "unit": null,
+    "basePrice": 192000.0,
+    "section": "MENRED German Lithium",
+    "sourcePage": 10,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "51.2v 280ah (0.5c)",
+    "unit": null,
+    "basePrice": 70500.0,
+    "section": "MENRED German Lithium",
+    "sourcePage": 10,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "51.2v 314ah (0.5c)",
+    "unit": null,
+    "basePrice": 81000.0,
+    "section": "MENRED German Lithium",
+    "sourcePage": 10,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "12.8v 200ah (SR-EOS02B-12)",
+    "unit": null,
+    "basePrice": 21000.0,
+    "section": "SRNE Lithium Battery ALL BRANCHES",
+    "sourcePage": 10,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "25.6v 100ah (SR-EOS02B-24)",
+    "unit": null,
+    "basePrice": 36000.0,
+    "section": "SRNE Lithium Battery ALL BRANCHES",
+    "sourcePage": 10,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "25.6v 280ah (SR-EOS08B-24)",
+    "unit": null,
+    "basePrice": 45000.0,
+    "section": "SRNE Lithium Battery ALL BRANCHES",
+    "sourcePage": 10,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "51.2v 100ah (SR-EOS05B)",
+    "unit": null,
+    "basePrice": 45000.0,
+    "section": "SRNE Lithium Battery ALL BRANCHES",
+    "sourcePage": 10,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "51.2v 200ah (SR-EOS10B)",
+    "unit": null,
+    "basePrice": 88000.0,
+    "section": "SRNE Lithium Battery ALL BRANCHES",
+    "sourcePage": 10,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "51.2v 314ah (SR-EOS15B)",
+    "unit": null,
+    "basePrice": 133000.0,
+    "section": "SRNE Lithium Battery ALL BRANCHES",
+    "sourcePage": 10,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "51.2v 100ah (SR-SE05B)",
+    "unit": null,
+    "basePrice": 41000.0,
+    "section": "SRNE Lithium Battery ALL BRANCHES",
+    "sourcePage": 10,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "51.2v 205ah (SR-SE10B)",
+    "unit": null,
+    "basePrice": 72000.0,
+    "section": "SRNE Lithium Battery ALL BRANCHES",
+    "sourcePage": 10,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "51.2v 280ah (SR-SE15B)",
+    "unit": null,
+    "basePrice": 84000.0,
+    "section": "SRNE Lithium Battery ALL BRANCHES",
+    "sourcePage": 10,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "51.2v 314ah (SR-SE16B-PRO)",
+    "unit": null,
+    "basePrice": 94200.0,
+    "section": "SRNE Lithium Battery ALL BRANCHES",
+    "sourcePage": 10,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "48v 100ah",
+    "unit": null,
+    "basePrice": 88000.0,
+    "section": "OTHER",
+    "sourcePage": 10,
+    "sourceLine": 34
+  },
+  {
+    "materialName": "48v 200ah",
+    "unit": null,
+    "basePrice": 170000.0,
+    "section": "OTHER",
+    "sourcePage": 10,
+    "sourceLine": 35
+  },
+  {
+    "materialName": "Model: LF105 3.2v 105ah",
+    "unit": null,
+    "basePrice": 7500.0,
+    "section": "OTHER",
+    "sourcePage": 10,
+    "sourceLine": 37
+  },
+  {
+    "materialName": "12.8v 100ah",
+    "unit": null,
+    "basePrice": 16000.0,
+    "section": "LITHIUM BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "12.8v 200ah",
+    "unit": null,
+    "basePrice": 29500.0,
+    "section": "LITHIUM BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 29
+  },
+  {
+    "materialName": "24v 200ah",
+    "unit": null,
+    "basePrice": 47000.0,
+    "section": "LITHIUM (gray)",
+    "sourcePage": 11,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "48v 250ah",
+    "unit": null,
+    "basePrice": 95000.0,
+    "section": "WITH DEYE COMMMUNICATION PORT",
+    "sourcePage": 11,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "48v 300ah",
+    "unit": null,
+    "basePrice": 105000.0,
+    "section": "WITH DEYE COMMMUNICATION PORT",
+    "sourcePage": 11,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "51.2v 100ah",
+    "unit": null,
+    "basePrice": 74000.0,
+    "section": "LITHIUM BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "51.2v 200ah",
+    "unit": null,
+    "basePrice": 144000.0,
+    "section": "LITHIUM BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "12v 20ah",
+    "unit": null,
+    "basePrice": 1700.0,
+    "section": "GEL BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 33
+  },
+  {
+    "materialName": "12v 50ah",
+    "unit": null,
+    "basePrice": 3400.0,
+    "section": "GEL BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 34
+  },
+  {
+    "materialName": "12v 65ah",
+    "unit": null,
+    "basePrice": 4600.0,
+    "section": "GEL BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 35
+  },
+  {
+    "materialName": "12v 70ah",
+    "unit": null,
+    "basePrice": 4600.0,
+    "section": "GEL BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 36
+  },
+  {
+    "materialName": "12v 100ah",
+    "unit": null,
+    "basePrice": 6000.0,
+    "section": "GEL BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 37
+  },
+  {
+    "materialName": "12v 150ah",
+    "unit": null,
+    "basePrice": 8500.0,
+    "section": "GEL BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 38
+  },
+  {
+    "materialName": "12v 200ah",
+    "unit": null,
+    "basePrice": 12000.0,
+    "section": "GEL BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 39
+  },
+  {
+    "materialName": "12v 250ah",
+    "unit": null,
+    "basePrice": 13500.0,
+    "section": "GEL BATTERY",
+    "sourcePage": 11,
+    "sourceLine": 40
+  },
+  {
+    "materialName": "SRNE 20a 12/24v",
+    "unit": null,
+    "basePrice": 2600.0,
+    "section": "SRNE MPPT",
+    "sourcePage": 12,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "SRNE 30a 12/24v",
+    "unit": null,
+    "basePrice": 3350.0,
+    "section": "SRNE MPPT",
+    "sourcePage": 12,
+    "sourceLine": 11
+  },
+  {
+    "materialName": "SRNE 40a 12/24v",
+    "unit": null,
+    "basePrice": 3500.0,
+    "section": "SRNE MPPT",
+    "sourcePage": 12,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "SRNE 60a 12/24/36/48v",
+    "unit": null,
+    "basePrice": 7500.0,
+    "section": "SRNE MPPT",
+    "sourcePage": 12,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "SRNE 100a 12/24/36/48v 250v",
+    "unit": null,
+    "basePrice": 19000.0,
+    "section": "SRNE MPPT",
+    "sourcePage": 12,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "SRNE BLUETOOTH",
+    "unit": null,
+    "basePrice": 1100.0,
+    "section": "SRNE MPPT",
+    "sourcePage": 12,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "SRNE WIRE",
+    "unit": null,
+    "basePrice": 800.0,
+    "section": "SRNE MPPT",
+    "sourcePage": 12,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "SRNE SR-DH20, 12v 5a",
+    "unit": null,
+    "basePrice": 700.0,
+    "section": "SRNE STREETLIGHT CONTROLLER",
+    "sourcePage": 12,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "SRNE SR-DH60, 12/24v 10a",
+    "unit": null,
+    "basePrice": 800.0,
+    "section": "SRNE STREETLIGHT CONTROLLER",
+    "sourcePage": 12,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "SRNE SR-DH100, 12/24v 15a",
+    "unit": null,
+    "basePrice": 1500.0,
+    "section": "SRNE STREETLIGHT CONTROLLER",
+    "sourcePage": 12,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "SRNE SR-DH120, 12/24v 20a",
+    "unit": null,
+    "basePrice": 1800.0,
+    "section": "SRNE STREETLIGHT CONTROLLER",
+    "sourcePage": 12,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "SRNE SR-CUALL REMOTE",
+    "unit": null,
+    "basePrice": 1000.0,
+    "section": "SRNE STREETLIGHT CONTROLLER",
+    "sourcePage": 12,
+    "sourceLine": 22
+  },
+  {
+    "materialName": "Lightning Arrester, 3needles",
+    "unit": null,
+    "basePrice": 2900.0,
+    "section": "Lightning Arrester ALL BRANCHES",
+    "sourcePage": 12,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "Grounding Cable 16mm2",
+    "unit": "m",
+    "basePrice": 160.0,
+    "section": "Lightning Arrester ALL BRANCHES",
+    "sourcePage": 12,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "Grounding Cable Lug",
+    "unit": "pc/s",
+    "basePrice": 100.0,
+    "section": "Lightning Arrester ALL BRANCHES",
+    "sourcePage": 12,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "Grounding Rod.3m,diam.10mm",
+    "unit": "m",
+    "basePrice": 390.0,
+    "section": "Lightning Arrester ALL BRANCHES",
+    "sourcePage": 12,
+    "sourceLine": 27
+  },
+  {
+    "materialName": "Cable Tray, 30*30mm, 2m",
+    "unit": null,
+    "basePrice": 180.0,
+    "section": "WIRE DUCT",
+    "sourcePage": 12,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "Cable Tray, 50*50mm, 2m",
+    "unit": null,
+    "basePrice": 300.0,
+    "section": "WIRE DUCT",
+    "sourcePage": 12,
+    "sourceLine": 32
+  },
+  {
+    "materialName": "Cable Tray, 80*80mm, 2m",
+    "unit": null,
+    "basePrice": 600.0,
+    "section": "WIRE DUCT",
+    "sourcePage": 12,
+    "sourceLine": 33
+  },
+  {
+    "materialName": "Cable Tray.NO SLOT 50*50mm,2m",
+    "unit": null,
+    "basePrice": 400.0,
+    "section": "WIRE DUCT",
+    "sourcePage": 12,
+    "sourceLine": 34
+  },
+  {
+    "materialName": "Aluminum Cable Tray 50*50mm",
+    "unit": null,
+    "basePrice": 500.0,
+    "section": "ALUMINUM CABLE TRAY",
+    "sourcePage": 12,
+    "sourceLine": 36
+  },
+  {
+    "materialName": "Aluminum Cable Tray 50*100mm",
+    "unit": null,
+    "basePrice": 800.0,
+    "section": "ALUMINUM CABLE TRAY",
+    "sourcePage": 12,
+    "sourceLine": 37
+  },
+  {
+    "materialName": "End Cap 50*50mm",
+    "unit": null,
+    "basePrice": 20.0,
+    "section": "ALUMINUM CABLE TRAY",
+    "sourcePage": 12,
+    "sourceLine": 38
+  },
+  {
+    "materialName": "End Cap 50*100mm",
+    "unit": null,
+    "basePrice": 40.0,
+    "section": "ALUMINUM CABLE TRAY",
+    "sourcePage": 12,
+    "sourceLine": 39
+  },
+  {
+    "materialName": "2.5mm Twin core (2x2.5mm)",
+    "unit": "m",
+    "basePrice": 65.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "4mm Single core Red (1x4mm)",
+    "unit": "m",
+    "basePrice": 49.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "4mm Single core Blk (1x4mm)",
+    "unit": "m",
+    "basePrice": 49.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "4mm Twin core (2x4mm)",
+    "unit": "m",
+    "basePrice": 93.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 11
+  },
+  {
+    "materialName": "6mm Single core Red (1x6mm)",
+    "unit": "m",
+    "basePrice": 64.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "6mm Single core Blk (1x6mm)",
+    "unit": "m",
+    "basePrice": 64.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "6mm Twin core (2x6mm)",
+    "unit": "m",
+    "basePrice": 111.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "10mm Single core Red (1x10mm)",
+    "unit": "m",
+    "basePrice": 130.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "10mm Single core Blk (1x10mm)",
+    "unit": "m",
+    "basePrice": 130.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "16mm Red",
+    "unit": "m",
+    "basePrice": 200.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "16mm Blk",
+    "unit": "m",
+    "basePrice": 200.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "25mm Red",
+    "unit": "m",
+    "basePrice": 300.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "25mm Blk",
+    "unit": "m",
+    "basePrice": 300.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 27
+  },
+  {
+    "materialName": "35mm Red",
+    "unit": "m",
+    "basePrice": 320.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "35mm Blk",
+    "unit": "m",
+    "basePrice": 320.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 29
+  },
+  {
+    "materialName": "50mm Red",
+    "unit": "m",
+    "basePrice": 450.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "50mm Blk",
+    "unit": "m",
+    "basePrice": 450.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "70mm Red",
+    "unit": "m",
+    "basePrice": 620.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 32
+  },
+  {
+    "materialName": "70mm Blk",
+    "unit": "m",
+    "basePrice": 620.0,
+    "section": "OTHER",
+    "sourcePage": 13,
+    "sourceLine": 33
+  },
+  {
+    "materialName": "SC16-10 (For 16mm cable)",
+    "unit": null,
+    "basePrice": 12.0,
+    "section": "BATTERY LUGS",
+    "sourcePage": 13,
+    "sourceLine": 35
+  },
+  {
+    "materialName": "SC25-8 (For 25mm cable)",
+    "unit": null,
+    "basePrice": 15.0,
+    "section": "BATTERY LUGS",
+    "sourcePage": 13,
+    "sourceLine": 36
+  },
+  {
+    "materialName": "6SC35-8 (For 35mm cable)",
+    "unit": null,
+    "basePrice": 20.0,
+    "section": "BATTERY LUGS",
+    "sourcePage": 13,
+    "sourceLine": 37
+  },
+  {
+    "materialName": "SC50-8 (For 50mm cable)",
+    "unit": null,
+    "basePrice": 25.0,
+    "section": "BATTERY LUGS",
+    "sourcePage": 13,
+    "sourceLine": 38
+  },
+  {
+    "materialName": "2*0.75mm\u00b2",
+    "unit": "m",
+    "basePrice": 70.0,
+    "section": "PUMP Cables ALL BRANCHES",
+    "sourcePage": 13,
+    "sourceLine": 40
+  },
+  {
+    "materialName": "3*2.5mm\u00b2",
+    "unit": "m",
+    "basePrice": 110.0,
+    "section": "PUMP Cables ALL BRANCHES",
+    "sourcePage": 13,
+    "sourceLine": 41
+  },
+  {
+    "materialName": "4*5.5mm\u00b2",
+    "unit": "m",
+    "basePrice": 450.0,
+    "section": "PUMP Cables ALL BRANCHES",
+    "sourcePage": 13,
+    "sourceLine": 42
+  },
+  {
+    "materialName": "SPIRAL WRAPPING 8MM",
+    "unit": "roll",
+    "basePrice": 100.0,
+    "section": "SPIRAL Wrapping Bands ALL BRANCHES",
+    "sourcePage": 13,
+    "sourceLine": 44
+  },
+  {
+    "materialName": "SPIRAL WRAPPING 16MM",
+    "unit": "roll",
+    "basePrice": 150.0,
+    "section": "SPIRAL Wrapping Bands ALL BRANCHES",
+    "sourcePage": 13,
+    "sourceLine": 45
+  },
+  {
+    "materialName": "SPIRAL WRAPPING 20MM",
+    "unit": "roll",
+    "basePrice": 200.0,
+    "section": "SPIRAL Wrapping Bands ALL BRANCHES",
+    "sourcePage": 13,
+    "sourceLine": 46
+  },
+  {
+    "materialName": "1/2\u201d inch Flexible Conduit",
+    "unit": "m",
+    "basePrice": 100.0,
+    "section": "Liquid Tight Metal Flexible Conduit",
+    "sourcePage": 14,
+    "sourceLine": 5
+  },
+  {
+    "materialName": "3/4\u201d inch Flexible Conduit",
+    "unit": "m",
+    "basePrice": 110.0,
+    "section": "Liquid Tight Metal Flexible Conduit",
+    "sourcePage": 14,
+    "sourceLine": 6
+  },
+  {
+    "materialName": "1\u201d inch Flexible Conduit",
+    "unit": "m",
+    "basePrice": 160.0,
+    "section": "Liquid Tight Metal Flexible Conduit",
+    "sourcePage": 14,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "1.5\u201d inch Flexible Conduit",
+    "unit": "m",
+    "basePrice": 190.0,
+    "section": "Liquid Tight Metal Flexible Conduit",
+    "sourcePage": 14,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "1/2\u201d inch Fittings Connector",
+    "unit": "pc/s",
+    "basePrice": 50.0,
+    "section": "Liquid Tight Metal Flexible Connector",
+    "sourcePage": 14,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "3/4\u201d inch Fittings Connector",
+    "unit": "pc/s",
+    "basePrice": 60.0,
+    "section": "Liquid Tight Metal Flexible Connector",
+    "sourcePage": 14,
+    "sourceLine": 11
+  },
+  {
+    "materialName": "1\u201d inch Fittings Connector",
+    "unit": "pc/s",
+    "basePrice": 80.0,
+    "section": "Liquid Tight Metal Flexible Connector",
+    "sourcePage": 14,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "1.5\u201d inch Fittings Connector",
+    "unit": "pc/s",
+    "basePrice": 100.0,
+    "section": "Liquid Tight Metal Flexible Connector",
+    "sourcePage": 14,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "HDPE Pipe AD21.2mm (100m/roll)",
+    "unit": "roll",
+    "basePrice": 3500.0,
+    "section": "HDPE Flexible Conduit",
+    "sourcePage": 14,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "HDPE Pipe AD34.5mm (50m/roll)",
+    "unit": "roll",
+    "basePrice": 2450.0,
+    "section": "HDPE Flexible Conduit",
+    "sourcePage": 14,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "HDPE Pipe AD54.5mm (25m/roll)",
+    "unit": "roll",
+    "basePrice": 2500.0,
+    "section": "HDPE Flexible Conduit",
+    "sourcePage": 14,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "HDPE Pipe AD21.2mm",
+    "unit": "pc/s",
+    "basePrice": 15.0,
+    "section": "HDPE Flexible Connector",
+    "sourcePage": 14,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "HDPE Pipe AD34.5mm",
+    "unit": "pc/s",
+    "basePrice": 20.0,
+    "section": "HDPE Flexible Connector",
+    "sourcePage": 14,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "HDPE Pipe AD54.5mm",
+    "unit": "pc/s",
+    "basePrice": 50.0,
+    "section": "HDPE Flexible Connector",
+    "sourcePage": 14,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "Stainless 1/2\u201d Clip",
+    "unit": "pc/s",
+    "basePrice": 7.0,
+    "section": "Stainless Clips",
+    "sourcePage": 14,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "Stainless 3/4\u201d Clip",
+    "unit": "pc/s",
+    "basePrice": 7.0,
+    "section": "Stainless Clips",
+    "sourcePage": 14,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "Stainless 1\u201d Clip",
+    "unit": "pc/s",
+    "basePrice": 9.0,
+    "section": "Stainless Clips",
+    "sourcePage": 14,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "Stainless 1.5\u201d Clip",
+    "unit": "pc/s",
+    "basePrice": 9.0,
+    "section": "Stainless Clips",
+    "sourcePage": 14,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "Shrink Tube Green 1mm\u00b2",
+    "unit": "m",
+    "basePrice": 40.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "Shrink Tube Red 1mm\u00b2",
+    "unit": "m",
+    "basePrice": 44.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 29
+  },
+  {
+    "materialName": "Shrink Tube Yellow 1mm\u00b2",
+    "unit": "m",
+    "basePrice": 40.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "Shrink Tube Blue 1mm\u00b2",
+    "unit": "m",
+    "basePrice": 40.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "Shrink Tube Black 1mm\u00b2",
+    "unit": "m",
+    "basePrice": 71.7,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 32
+  },
+  {
+    "materialName": "Shrink Tube Blue 4mm\u00b2",
+    "unit": "m",
+    "basePrice": 40.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 33
+  },
+  {
+    "materialName": "Shrink Tube Red 4mm\u00b2",
+    "unit": "m",
+    "basePrice": 44.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 34
+  },
+  {
+    "materialName": "Shrink Tube Green 4mm\u00b2",
+    "unit": "m",
+    "basePrice": 40.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 35
+  },
+  {
+    "materialName": "Shrink Tube Yellow 4mm\u00b2",
+    "unit": "m",
+    "basePrice": 40.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 36
+  },
+  {
+    "materialName": "Shrink Tube Black 4mm\u00b2",
+    "unit": "m",
+    "basePrice": 71.7,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 37
+  },
+  {
+    "materialName": "Shrink Tube Blue 6mm\u00b2",
+    "unit": "m",
+    "basePrice": 10.5,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 38
+  },
+  {
+    "materialName": "Shrink Tube Red 6mm\u00b2",
+    "unit": "m",
+    "basePrice": 44.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 39
+  },
+  {
+    "materialName": "Shrink Tube Green 6mm\u00b2",
+    "unit": "m",
+    "basePrice": 40.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 40
+  },
+  {
+    "materialName": "Shrink Tube Yellow 6mm\u00b2",
+    "unit": "m",
+    "basePrice": 40.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 41
+  },
+  {
+    "materialName": "Shrink Tube Yellow 14mm\u00b2",
+    "unit": "m",
+    "basePrice": 40.0,
+    "section": "Shrinking Tube ALL BRANCHES",
+    "sourcePage": 14,
+    "sourceLine": 42
+  },
+  {
+    "materialName": "2.1M SOLAR RAILING",
+    "unit": null,
+    "basePrice": 480.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "2.2M SOLAR RAILING",
+    "unit": null,
+    "basePrice": 530.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "2.4M SOLAR RAILING",
+    "unit": null,
+    "basePrice": 632.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "2.8M SOLAR RAILING",
+    "unit": null,
+    "basePrice": 735.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 11
+  },
+  {
+    "materialName": "4.8M SOLAR RAILING",
+    "unit": null,
+    "basePrice": 1100.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "L FOOT/BRACKET",
+    "unit": null,
+    "basePrice": 77.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "SPLICE KIT",
+    "unit": null,
+    "basePrice": 79.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "END CLAMP (30mm,35mm,40mm,45mm)",
+    "unit": null,
+    "basePrice": 42.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "Adjustable End Clamp",
+    "unit": null,
+    "basePrice": 50.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "MID CLAMP (30mm,35mm,40mm,45mm)",
+    "unit": null,
+    "basePrice": 40.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "Adjustable Middle Clamp",
+    "unit": null,
+    "basePrice": 50.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "TILE ROOF BRACKET",
+    "unit": null,
+    "basePrice": 280.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "ADJ. TILE ROOF BRACKET",
+    "unit": null,
+    "basePrice": 320.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "GROUNDING LUGS w/clips",
+    "unit": null,
+    "basePrice": 40.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "Metal Cable Clip",
+    "unit": null,
+    "basePrice": 12.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 22
+  },
+  {
+    "materialName": "Adjustable Front Leg",
+    "unit": null,
+    "basePrice": 180.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "Adj. rear Leg (10\u00b0- 15\u00b0)",
+    "unit": null,
+    "basePrice": 480.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "Adj. rear Leg (15\u00b0- 30\u00b0)",
+    "unit": null,
+    "basePrice": 480.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "Grounding Cable Clip/Plate",
+    "unit": null,
+    "basePrice": 7.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "Affordable Railing 2.4m",
+    "unit": null,
+    "basePrice": 410.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 27
+  },
+  {
+    "materialName": "Affordable Mid & End Clamp (30mm)",
+    "unit": null,
+    "basePrice": 34.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "Affordable Lfoot",
+    "unit": null,
+    "basePrice": 56.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 29
+  },
+  {
+    "materialName": "Affordable Splice Kit",
+    "unit": null,
+    "basePrice": 57.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "Battery Combiner 125A MCCB",
+    "unit": null,
+    "basePrice": 3900.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 38
+  },
+  {
+    "materialName": "Battery Combiner 225A MCCB",
+    "unit": null,
+    "basePrice": 4900.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 39
+  },
+  {
+    "materialName": "Battery Combiner 250A MCCB",
+    "unit": null,
+    "basePrice": 5000.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 40
+  },
+  {
+    "materialName": "Battery Combiner 350A MCCB",
+    "unit": null,
+    "basePrice": 5800.0,
+    "section": "OTHER",
+    "sourcePage": 15,
+    "sourceLine": 41
+  },
+  {
+    "materialName": "Rapid Shutdown BFS11",
+    "unit": null,
+    "basePrice": 2000.0,
+    "section": "Rapid Shut Down ALL BRANCHES",
+    "sourcePage": 15,
+    "sourceLine": 43
+  },
+  {
+    "materialName": "Emergency Button",
+    "unit": null,
+    "basePrice": 2000.0,
+    "section": "Rapid Shut Down ALL BRANCHES",
+    "sourcePage": 15,
+    "sourceLine": 44
+  },
+  {
+    "materialName": "Solar Road Stud Lights (Yellow, White & Green)",
+    "unit": null,
+    "basePrice": 1100.0,
+    "section": "Solar Road Stud Lights",
+    "sourcePage": 15,
+    "sourceLine": 48
+  },
+  {
+    "materialName": "DC 2P 550V 10A",
+    "unit": null,
+    "basePrice": 400.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 3
+  },
+  {
+    "materialName": "DC 2P 550V 16A",
+    "unit": null,
+    "basePrice": 400.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 4
+  },
+  {
+    "materialName": "DC 2P 550V 20A",
+    "unit": null,
+    "basePrice": 400.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 5
+  },
+  {
+    "materialName": "DC 2P 550V 25A",
+    "unit": null,
+    "basePrice": 400.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 6
+  },
+  {
+    "materialName": "DC 2P 550V 32A",
+    "unit": null,
+    "basePrice": 400.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "DC 2P 550V 40A",
+    "unit": null,
+    "basePrice": 400.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "DC 2P 550V 63A",
+    "unit": null,
+    "basePrice": 450.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "DC 2P 550V 80A",
+    "unit": null,
+    "basePrice": 900.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "DC 2P 550V 100A",
+    "unit": null,
+    "basePrice": 950.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 11
+  },
+  {
+    "materialName": "DC 2P 550V 125A",
+    "unit": null,
+    "basePrice": 950.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "DC 2P 800V 32A",
+    "unit": null,
+    "basePrice": 980.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "DC 4P 1000V 16A",
+    "unit": null,
+    "basePrice": 1200.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "DC 4P 1000V 20A",
+    "unit": null,
+    "basePrice": 1200.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "DC 4P 1000V 32A",
+    "unit": null,
+    "basePrice": 1200.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "DC 4P 1000V 63A",
+    "unit": null,
+    "basePrice": 1200.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "DC 4P 1000V 125A",
+    "unit": null,
+    "basePrice": 1200.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "DC MCCB 100A 2P",
+    "unit": null,
+    "basePrice": 2300.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "DC MCCB 125A 2P",
+    "unit": null,
+    "basePrice": 2300.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "DC MCCB 160A 2P",
+    "unit": null,
+    "basePrice": 2300.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "DC MCCB 200A 2P",
+    "unit": null,
+    "basePrice": 2500.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 22
+  },
+  {
+    "materialName": "DC MCCB 250A 2P",
+    "unit": null,
+    "basePrice": 2500.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "DC Fuse 32A 1000V",
+    "unit": null,
+    "basePrice": 200.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "Solar Fuse Holder",
+    "unit": null,
+    "basePrice": 190.0,
+    "section": "FEEO BREAKER DC MCB",
+    "sourcePage": 16,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "AC 2P 10A",
+    "unit": null,
+    "basePrice": 200.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 27
+  },
+  {
+    "materialName": "AC 2P 16A",
+    "unit": null,
+    "basePrice": 200.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "AC 2P 20A",
+    "unit": null,
+    "basePrice": 200.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 29
+  },
+  {
+    "materialName": "AC 2P 25A",
+    "unit": null,
+    "basePrice": 200.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "AC 2P 32A",
+    "unit": null,
+    "basePrice": 200.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "AC 2P 40A",
+    "unit": null,
+    "basePrice": 200.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 32
+  },
+  {
+    "materialName": "AC 2P 63A",
+    "unit": null,
+    "basePrice": 200.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 33
+  },
+  {
+    "materialName": "AC 2P 80A",
+    "unit": null,
+    "basePrice": 400.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 34
+  },
+  {
+    "materialName": "AC 2P 100A",
+    "unit": null,
+    "basePrice": 400.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 35
+  },
+  {
+    "materialName": "AC 2P 125A",
+    "unit": null,
+    "basePrice": 400.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 36
+  },
+  {
+    "materialName": "AC 3P 80A",
+    "unit": null,
+    "basePrice": 600.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 37
+  },
+  {
+    "materialName": "AC 3P 100a",
+    "unit": null,
+    "basePrice": 700.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 38
+  },
+  {
+    "materialName": "AC 3P 125a",
+    "unit": null,
+    "basePrice": 800.0,
+    "section": "FEEO BREAKER AC MCB",
+    "sourcePage": 16,
+    "sourceLine": 39
+  },
+  {
+    "materialName": "SPD DC 600V 2P",
+    "unit": null,
+    "basePrice": 830.0,
+    "section": "FEEO SPD, ATS &, MTS ALL BRANCHES",
+    "sourcePage": 16,
+    "sourceLine": 41
+  },
+  {
+    "materialName": "SPD DC 800v 2P",
+    "unit": null,
+    "basePrice": 980.0,
+    "section": "FEEO SPD, ATS &, MTS ALL BRANCHES",
+    "sourcePage": 16,
+    "sourceLine": 42
+  },
+  {
+    "materialName": "SPD DC 1000V 3P",
+    "unit": null,
+    "basePrice": 1200.0,
+    "section": "FEEO SPD, ATS &, MTS ALL BRANCHES",
+    "sourcePage": 16,
+    "sourceLine": 43
+  },
+  {
+    "materialName": "SPD AC 20-40KA 2P",
+    "unit": null,
+    "basePrice": 430.0,
+    "section": "FEEO SPD, ATS &, MTS ALL BRANCHES",
+    "sourcePage": 16,
+    "sourceLine": 44
+  },
+  {
+    "materialName": "SPD AC 20-40KA 3P",
+    "unit": null,
+    "basePrice": 950.0,
+    "section": "FEEO SPD, ATS &, MTS ALL BRANCHES",
+    "sourcePage": 16,
+    "sourceLine": 45
+  },
+  {
+    "materialName": "ATS 2P 125A Din Rail Type",
+    "unit": null,
+    "basePrice": 1500.0,
+    "section": "FEEO SPD, ATS &, MTS ALL BRANCHES",
+    "sourcePage": 16,
+    "sourceLine": 46
+  },
+  {
+    "materialName": "ATS 2P 63A",
+    "unit": null,
+    "basePrice": 2000.0,
+    "section": "FEEO SPD, ATS &, MTS ALL BRANCHES",
+    "sourcePage": 16,
+    "sourceLine": 47
+  },
+  {
+    "materialName": "ATS 4P 63A",
+    "unit": null,
+    "basePrice": 2200.0,
+    "section": "FEEO SPD, ATS &, MTS ALL BRANCHES",
+    "sourcePage": 16,
+    "sourceLine": 48
+  },
+  {
+    "materialName": "MTS 2P 32A",
+    "unit": null,
+    "basePrice": 500.0,
+    "section": "FEEO SPD, ATS &, MTS ALL BRANCHES",
+    "sourcePage": 16,
+    "sourceLine": 49
+  },
+  {
+    "materialName": "MTS 2P 63A",
+    "unit": null,
+    "basePrice": 500.0,
+    "section": "FEEO SPD, ATS &, MTS ALL BRANCHES",
+    "sourcePage": 16,
+    "sourceLine": 50
+  },
+  {
+    "materialName": "Over & Under Voltage (60s, 240s, 600s)",
+    "unit": null,
+    "basePrice": 500.0,
+    "section": "TAIXI SPD, ATS &, MTS",
+    "sourcePage": 17,
+    "sourceLine": 35
+  },
+  {
+    "materialName": "Adjustable Over&Under Voltage Protector",
+    "unit": null,
+    "basePrice": 700.0,
+    "section": "TAIXI SPD, ATS &, MTS",
+    "sourcePage": 17,
+    "sourceLine": 36
+  },
+  {
+    "materialName": "Taixi Din Rail Type Digital Time Swtich",
+    "unit": null,
+    "basePrice": 620.0,
+    "section": "TAIXI SPD, ATS &, MTS",
+    "sourcePage": 17,
+    "sourceLine": 37
+  },
+  {
+    "materialName": "AC ISOLATOR 4P 63amps",
+    "unit": null,
+    "basePrice": 1200.0,
+    "section": "BENY Brand ISOLATOR",
+    "sourcePage": 17,
+    "sourceLine": 46
+  },
+  {
+    "materialName": "DC ISOLATOR 4P 32amps",
+    "unit": null,
+    "basePrice": 1500.0,
+    "section": "BENY Brand ISOLATOR",
+    "sourcePage": 17,
+    "sourceLine": 47
+  },
+  {
+    "materialName": "Ingelec 3ways Breaker Box",
+    "unit": null,
+    "basePrice": 80.0,
+    "section": "INGELEC Breaker Box ALL BRANCHES",
+    "sourcePage": 18,
+    "sourceLine": 2
+  },
+  {
+    "materialName": "Ingelec 4ways Breaker Box",
+    "unit": null,
+    "basePrice": 180.0,
+    "section": "INGELEC Breaker Box ALL BRANCHES",
+    "sourcePage": 18,
+    "sourceLine": 3
+  },
+  {
+    "materialName": "Ingelec 6ways Breaker Box",
+    "unit": null,
+    "basePrice": 200.0,
+    "section": "INGELEC Breaker Box ALL BRANCHES",
+    "sourcePage": 18,
+    "sourceLine": 4
+  },
+  {
+    "materialName": "Ingelec 8ways Breaker Box",
+    "unit": null,
+    "basePrice": 280.0,
+    "section": "INGELEC Breaker Box ALL BRANCHES",
+    "sourcePage": 18,
+    "sourceLine": 5
+  },
+  {
+    "materialName": "Ingelec 9ways Breaker Box",
+    "unit": null,
+    "basePrice": 280.0,
+    "section": "INGELEC Breaker Box ALL BRANCHES",
+    "sourcePage": 18,
+    "sourceLine": 6
+  },
+  {
+    "materialName": "Ingelec 12ways Breaker Box",
+    "unit": null,
+    "basePrice": 350.0,
+    "section": "INGELEC Breaker Box ALL BRANCHES",
+    "sourcePage": 18,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "Ingelec 13ways Breaker Box",
+    "unit": null,
+    "basePrice": 350.0,
+    "section": "INGELEC Breaker Box ALL BRANCHES",
+    "sourcePage": 18,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "Ingelec 16ways Breaker Box",
+    "unit": null,
+    "basePrice": 450.0,
+    "section": "INGELEC Breaker Box ALL BRANCHES",
+    "sourcePage": 18,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "Ingelec 18ways Breaker Box",
+    "unit": null,
+    "basePrice": 550.0,
+    "section": "INGELEC Breaker Box ALL BRANCHES",
+    "sourcePage": 18,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "Sassin 4ways",
+    "unit": null,
+    "basePrice": 450.0,
+    "section": "OTHER",
+    "sourcePage": 18,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "Sassin 6ways",
+    "unit": null,
+    "basePrice": 500.0,
+    "section": "OTHER",
+    "sourcePage": 18,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "Sassin 8ways",
+    "unit": null,
+    "basePrice": 550.0,
+    "section": "OTHER",
+    "sourcePage": 18,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "Sassin 12ways",
+    "unit": null,
+    "basePrice": 660.0,
+    "section": "OTHER",
+    "sourcePage": 18,
+    "sourceLine": 22
+  },
+  {
+    "materialName": "Sassin 18ways",
+    "unit": null,
+    "basePrice": 900.0,
+    "section": "OTHER",
+    "sourcePage": 18,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "Sassin 24ways",
+    "unit": null,
+    "basePrice": 1400.0,
+    "section": "OTHER",
+    "sourcePage": 18,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "IP65 5ways",
+    "unit": null,
+    "basePrice": 350.0,
+    "section": "Box (OUTDOOR)",
+    "sourcePage": 18,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "IP65 8ways",
+    "unit": null,
+    "basePrice": 450.0,
+    "section": "Box (OUTDOOR)",
+    "sourcePage": 18,
+    "sourceLine": 29
+  },
+  {
+    "materialName": "IP65 12ways",
+    "unit": null,
+    "basePrice": 700.0,
+    "section": "Box (OUTDOOR)",
+    "sourcePage": 18,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "IP65 18ways",
+    "unit": null,
+    "basePrice": 1520.0,
+    "section": "Box (OUTDOOR)",
+    "sourcePage": 18,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "IP65 24ways",
+    "unit": null,
+    "basePrice": 2200.0,
+    "section": "Box (OUTDOOR)",
+    "sourcePage": 18,
+    "sourceLine": 32
+  },
+  {
+    "materialName": "250*300*160mm",
+    "unit": null,
+    "basePrice": 1400.0,
+    "section": "Breaker Box",
+    "sourcePage": 18,
+    "sourceLine": 36
+  },
+  {
+    "materialName": "300*400*200mm",
+    "unit": null,
+    "basePrice": 1900.0,
+    "section": "Breaker Box",
+    "sourcePage": 18,
+    "sourceLine": 37
+  },
+  {
+    "materialName": "400*500*200mm",
+    "unit": null,
+    "basePrice": 2900.0,
+    "section": "Breaker Box",
+    "sourcePage": 18,
+    "sourceLine": 38
+  },
+  {
+    "materialName": "500*600*200mm",
+    "unit": null,
+    "basePrice": 4100.0,
+    "section": "Breaker Box",
+    "sourcePage": 18,
+    "sourceLine": 39
+  },
+  {
+    "materialName": "500*700*200mm",
+    "unit": null,
+    "basePrice": 4400.0,
+    "section": "Breaker Box",
+    "sourcePage": 18,
+    "sourceLine": 40
+  },
+  {
+    "materialName": "35mm Din Rail One meter",
+    "unit": null,
+    "basePrice": 290.0,
+    "section": "Breaker Box",
+    "sourcePage": 18,
+    "sourceLine": 41
+  },
+  {
+    "materialName": "100*100*70mm",
+    "unit": null,
+    "basePrice": 120.0,
+    "section": "Junction Box",
+    "sourcePage": 18,
+    "sourceLine": 45
+  },
+  {
+    "materialName": "150*150*70mm",
+    "unit": null,
+    "basePrice": 130.0,
+    "section": "Junction Box",
+    "sourcePage": 18,
+    "sourceLine": 46
+  },
+  {
+    "materialName": "200*200*80mm",
+    "unit": null,
+    "basePrice": 240.0,
+    "section": "Junction Box",
+    "sourcePage": 18,
+    "sourceLine": 47
+  },
+  {
+    "materialName": "255x200x80mm",
+    "unit": null,
+    "basePrice": 260.0,
+    "section": "Junction Box",
+    "sourcePage": 18,
+    "sourceLine": 48
+  },
+  {
+    "materialName": "MC4 Connector",
+    "unit": null,
+    "basePrice": 60.0,
+    "section": "Connector",
+    "sourcePage": 19,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "MC4 with Fuse (10a, 15a & 20a)",
+    "unit": null,
+    "basePrice": 255.0,
+    "section": "Connector",
+    "sourcePage": 19,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "MC4 Spanner (Plastic)",
+    "unit": null,
+    "basePrice": 50.0,
+    "section": "Connector",
+    "sourcePage": 19,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "Metal MC4 Spanner",
+    "unit": null,
+    "basePrice": 100.0,
+    "section": "Connector",
+    "sourcePage": 19,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "Y Connector",
+    "unit": null,
+    "basePrice": 340.0,
+    "section": "Connector",
+    "sourcePage": 19,
+    "sourceLine": 11
+  },
+  {
+    "materialName": "W Connector",
+    "unit": null,
+    "basePrice": 440.0,
+    "section": "Connector",
+    "sourcePage": 19,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "4 Branch Connector",
+    "unit": null,
+    "basePrice": 550.0,
+    "section": "Connector",
+    "sourcePage": 19,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "MC4 10mm",
+    "unit": null,
+    "basePrice": 150.0,
+    "section": "Connector",
+    "sourcePage": 19,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "MC4 Slocable",
+    "unit": null,
+    "basePrice": 80.0,
+    "section": "Connector",
+    "sourcePage": 19,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "MC4 T2 Branch Connector",
+    "unit": null,
+    "basePrice": 250.0,
+    "section": "Connector",
+    "sourcePage": 19,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "MC4 T3 Branch Connector",
+    "unit": null,
+    "basePrice": 350.0,
+    "section": "Connector",
+    "sourcePage": 19,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "MC4 Crimper",
+    "unit": null,
+    "basePrice": 480.0,
+    "section": "Crimping Tool",
+    "sourcePage": 19,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "MC3 MC4 Crimper",
+    "unit": null,
+    "basePrice": 2500.0,
+    "section": "Crimping Tool",
+    "sourcePage": 19,
+    "sourceLine": 22
+  },
+  {
+    "materialName": "Hydraulic Crimping Tool YQ-70C",
+    "unit": null,
+    "basePrice": 1500.0,
+    "section": "Crimping Tool",
+    "sourcePage": 19,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "Hydraulic Crimping Tool YQ-120A",
+    "unit": null,
+    "basePrice": 3000.0,
+    "section": "Crimping Tool",
+    "sourcePage": 19,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "Electric Drill 18-25N.M",
+    "unit": null,
+    "basePrice": 2000.0,
+    "section": "Crimping Tool",
+    "sourcePage": 19,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "Wire Ferrules Crimper 0.25-10mm2",
+    "unit": null,
+    "basePrice": 750.0,
+    "section": "Crimping Tool",
+    "sourcePage": 19,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "Wire Ferrules Crimper 10-50mm2",
+    "unit": null,
+    "basePrice": 1700.0,
+    "section": "Crimping Tool",
+    "sourcePage": 19,
+    "sourceLine": 27
+  },
+  {
+    "materialName": "PG9 (For Cable 4-8mm2)",
+    "unit": "pack",
+    "basePrice": 140.0,
+    "section": "Waterproof Plastic",
+    "sourcePage": 20,
+    "sourceLine": 4
+  },
+  {
+    "materialName": "PG11 (For Cable 5-10mm2)",
+    "unit": "pack",
+    "basePrice": 200.0,
+    "section": "Waterproof Plastic",
+    "sourcePage": 20,
+    "sourceLine": 5
+  },
+  {
+    "materialName": "PG13.5 (For Cable 6-12mm2)",
+    "unit": "pack",
+    "basePrice": 250.0,
+    "section": "Waterproof Plastic",
+    "sourcePage": 20,
+    "sourceLine": 6
+  },
+  {
+    "materialName": "PG16 (For Cable 10-14mm2)",
+    "unit": "pack",
+    "basePrice": 290.0,
+    "section": "Waterproof Plastic",
+    "sourcePage": 20,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "PG19 (For Cable 12-15mm2)",
+    "unit": "pack",
+    "basePrice": 320.0,
+    "section": "Waterproof Plastic",
+    "sourcePage": 20,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "PG21 (For Cable 13-18mm2)",
+    "unit": "pack",
+    "basePrice": 400.0,
+    "section": "Waterproof Plastic",
+    "sourcePage": 20,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "PG29 (For Cable 16-25mm2)",
+    "unit": "pack",
+    "basePrice": 550.0,
+    "section": "Waterproof Plastic",
+    "sourcePage": 20,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "4mm2 Cable Copper Pin",
+    "unit": "pc/s",
+    "basePrice": 6.0,
+    "section": "Cable Copper Pin",
+    "sourcePage": 20,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "6mm2 Cable Copper Pin",
+    "unit": "pc/s",
+    "basePrice": 8.0,
+    "section": "Cable Copper Pin",
+    "sourcePage": 20,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "10mm2 Cable Copper Pin",
+    "unit": "pc/s",
+    "basePrice": 10.0,
+    "section": "Cable Copper Pin",
+    "sourcePage": 20,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "COPPER PIN DTLC 10",
+    "unit": "pc/s",
+    "basePrice": 90.0,
+    "section": "Cable Copper Pin",
+    "sourcePage": 20,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "COPPER PIN DTLC 10 W/ SCREW",
+    "unit": "pc/s",
+    "basePrice": 90.0,
+    "section": "Cable Copper Pin",
+    "sourcePage": 20,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "COPPER PIN DTLC 16",
+    "unit": "pc/s",
+    "basePrice": 90.0,
+    "section": "Cable Copper Pin",
+    "sourcePage": 20,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "COPPER PIN DTLC",
+    "unit": null,
+    "basePrice": 35.0,
+    "section": "Cable Copper Pin",
+    "sourcePage": 20,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "Fork Shape Terminal Red 0.5-1.5mm2",
+    "unit": "pc/s",
+    "basePrice": 0.8,
+    "section": "Fork Shape Terminal Lug ALL BRANCHES",
+    "sourcePage": 20,
+    "sourceLine": 22
+  },
+  {
+    "materialName": "Fork Shape Terminal Blue 1.5-2.5mm\u00b2",
+    "unit": "pc/s",
+    "basePrice": 1.0,
+    "section": "Fork Shape Terminal Lug ALL BRANCHES",
+    "sourcePage": 20,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "Fork Shape Terminal Black 2.5-4mm2",
+    "unit": "pc/s",
+    "basePrice": 2.0,
+    "section": "Fork Shape Terminal Lug ALL BRANCHES",
+    "sourcePage": 20,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "FORK SHAPE SV3.5-5",
+    "unit": "pc/s",
+    "basePrice": 2.4,
+    "section": "Fork Shape Terminal Lug ALL BRANCHES",
+    "sourcePage": 20,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "Metal Fork Ring SV3.5-6",
+    "unit": "pc/s",
+    "basePrice": 3.0,
+    "section": "Fork Shape Terminal Lug ALL BRANCHES",
+    "sourcePage": 20,
+    "sourceLine": 26
+  },
+  {
+    "materialName": "Suitable for 16mm2 10pcs for",
+    "unit": null,
+    "basePrice": 70.0,
+    "section": "Rubber Booth/Sleeve",
+    "sourcePage": 20,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "Suitable for 25mm2 10pcs for",
+    "unit": null,
+    "basePrice": 80.0,
+    "section": "Rubber Booth/Sleeve",
+    "sourcePage": 20,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "Suitable for 35mm2 10pcs for",
+    "unit": null,
+    "basePrice": 90.0,
+    "section": "Rubber Booth/Sleeve",
+    "sourcePage": 20,
+    "sourceLine": 32
+  },
+  {
+    "materialName": "Terminal Block 3pin",
+    "unit": "pc/s",
+    "basePrice": 12.0,
+    "section": "Terminal Block Pin",
+    "sourcePage": 21,
+    "sourceLine": 4
+  },
+  {
+    "materialName": "Terminal Block 4pin",
+    "unit": "pc/s",
+    "basePrice": 15.0,
+    "section": "Terminal Block Pin",
+    "sourcePage": 21,
+    "sourceLine": 5
+  },
+  {
+    "materialName": "Terminal Block 6pin",
+    "unit": "pc/s",
+    "basePrice": 25.0,
+    "section": "Terminal Block Pin",
+    "sourcePage": 21,
+    "sourceLine": 6
+  },
+  {
+    "materialName": "Terminal Block 10pin",
+    "unit": "pc/s",
+    "basePrice": 58.0,
+    "section": "Terminal Block Pin",
+    "sourcePage": 21,
+    "sourceLine": 7
+  },
+  {
+    "materialName": "Terminal Block 12pin",
+    "unit": "pc/s",
+    "basePrice": 66.0,
+    "section": "Terminal Block Pin",
+    "sourcePage": 21,
+    "sourceLine": 8
+  },
+  {
+    "materialName": "Terminal Block 15pin",
+    "unit": "pc/s",
+    "basePrice": 116.0,
+    "section": "Terminal Block Pin",
+    "sourcePage": 21,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "Terminal Block 20pin",
+    "unit": "pc/s",
+    "basePrice": 155.0,
+    "section": "Terminal Block Pin",
+    "sourcePage": 21,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "Battery Tester/Analyser",
+    "unit": null,
+    "basePrice": 2500.0,
+    "section": "Battery Related Devised",
+    "sourcePage": 21,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "Mini Clamp Meter UT-210E",
+    "unit": null,
+    "basePrice": 2500.0,
+    "section": "Battery Related Devised",
+    "sourcePage": 21,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "Mini Clamp Meter UT-210D",
+    "unit": null,
+    "basePrice": 2500.0,
+    "section": "Battery Related Devised",
+    "sourcePage": 21,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "UNI-T UT300S Thermometer",
+    "unit": null,
+    "basePrice": 950.0,
+    "section": "Battery Related Devised",
+    "sourcePage": 21,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "UT392B Laser Distance Meter",
+    "unit": null,
+    "basePrice": 2500.0,
+    "section": "Battery Related Devised",
+    "sourcePage": 21,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "Laser Distance Meter LM100",
+    "unit": null,
+    "basePrice": 2600.0,
+    "section": "Battery Related Devised",
+    "sourcePage": 21,
+    "sourceLine": 19
+  },
+  {
+    "materialName": "Battery Desulfator",
+    "unit": null,
+    "basePrice": 1600.0,
+    "section": "Battery Related Devised",
+    "sourcePage": 21,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "Battery Equalizer HA01",
+    "unit": null,
+    "basePrice": 1500.0,
+    "section": "Battery Related Devised",
+    "sourcePage": 21,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "Battery Equalizer HA02",
+    "unit": null,
+    "basePrice": 2800.0,
+    "section": "Battery Related Devised",
+    "sourcePage": 21,
+    "sourceLine": 22
+  },
+  {
+    "materialName": "DC Voltmeter 5V-120V",
+    "unit": null,
+    "basePrice": 99.0,
+    "section": "Battery Related Devised",
+    "sourcePage": 21,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "50W",
+    "unit": null,
+    "basePrice": 16800.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 36
+  },
+  {
+    "materialName": "80W",
+    "unit": null,
+    "basePrice": 20600.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 39
+  },
+  {
+    "materialName": "8W, 12/24V",
+    "unit": null,
+    "basePrice": 680.0,
+    "section": "\u201cALL IN ONE\u201d",
+    "sourcePage": 23,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "12W, 12/24V",
+    "unit": null,
+    "basePrice": 800.0,
+    "section": "\u201cALL IN ONE\u201d",
+    "sourcePage": 23,
+    "sourceLine": 11
+  },
+  {
+    "materialName": "18W, 12/24V",
+    "unit": null,
+    "basePrice": 1080.0,
+    "section": "\u201cALL IN ONE\u201d",
+    "sourcePage": 23,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "20W, 12/24V",
+    "unit": null,
+    "basePrice": 1100.0,
+    "section": "\u201cALL IN ONE\u201d",
+    "sourcePage": 23,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "24W, 12/24V",
+    "unit": null,
+    "basePrice": 1200.0,
+    "section": "\u201cALL IN ONE\u201d",
+    "sourcePage": 23,
+    "sourceLine": 14
+  },
+  {
+    "materialName": "30W, 12/24V",
+    "unit": null,
+    "basePrice": 1700.0,
+    "section": "\u201cALL IN ONE\u201d",
+    "sourcePage": 23,
+    "sourceLine": 15
+  },
+  {
+    "materialName": "60watts",
+    "unit": null,
+    "basePrice": 2500.0,
+    "section": "ALL IN ONE STREETLIGHT",
+    "sourcePage": 23,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "300w",
+    "unit": null,
+    "basePrice": 4300.0,
+    "section": "\u201cALL IN ONE\u201d",
+    "sourcePage": 23,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "30W",
+    "unit": null,
+    "basePrice": 11400.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 34
+  },
+  {
+    "materialName": "40W",
+    "unit": null,
+    "basePrice": 13300.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 35
+  },
+  {
+    "materialName": "60W",
+    "unit": null,
+    "basePrice": 17400.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 37
+  },
+  {
+    "materialName": "70W",
+    "unit": null,
+    "basePrice": 19900.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 38
+  },
+  {
+    "materialName": "SR-NC505",
+    "unit": null,
+    "basePrice": 4800.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 40
+  },
+  {
+    "materialName": "SR-NC510",
+    "unit": null,
+    "basePrice": 5100.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 41
+  },
+  {
+    "materialName": "SR-NC515",
+    "unit": null,
+    "basePrice": 6100.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 42
+  },
+  {
+    "materialName": "SR-NC520",
+    "unit": null,
+    "basePrice": 8500.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 43
+  },
+  {
+    "materialName": "SR-NC530",
+    "unit": null,
+    "basePrice": 9900.0,
+    "section": "Integrated Streetlight ALL BRANCHES",
+    "sourcePage": 23,
+    "sourceLine": 44
+  },
+  {
+    "materialName": "400w",
+    "unit": null,
+    "basePrice": 2900.0,
+    "section": "OTHER",
+    "sourcePage": 24,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "10w",
+    "unit": null,
+    "basePrice": 1700.0,
+    "section": "Solar Portable Light ALL BRANCHES",
+    "sourcePage": 24,
+    "sourceLine": 27
+  },
+  {
+    "materialName": "Square Box (Black)",
+    "unit": null,
+    "basePrice": 490.0,
+    "section": "Outdoor Column Headlight Lamp",
+    "sourcePage": 25,
+    "sourceLine": 9
+  },
+  {
+    "materialName": "Round (White)",
+    "unit": null,
+    "basePrice": 699.0,
+    "section": "Outdoor Column Headlight Lamp",
+    "sourcePage": 25,
+    "sourceLine": 10
+  },
+  {
+    "materialName": "Assorted Color",
+    "unit": null,
+    "basePrice": 420.0,
+    "section": "SOLAR CHRISTMAS LIGHT",
+    "sourcePage": 25,
+    "sourceLine": 12
+  },
+  {
+    "materialName": "Warm White",
+    "unit": null,
+    "basePrice": 420.0,
+    "section": "SOLAR CHRISTMAS LIGHT",
+    "sourcePage": 25,
+    "sourceLine": 13
+  },
+  {
+    "materialName": "SOLAR FAN 16\" 15w",
+    "unit": null,
+    "basePrice": 1900.0,
+    "section": "SOLAR ELECTRIC FAN",
+    "sourcePage": 25,
+    "sourceLine": 18
+  },
+  {
+    "materialName": "Brushless Solar standing Fan 16\"",
+    "unit": null,
+    "basePrice": 1800.0,
+    "section": "SOLAR ELECTRIC FAN",
+    "sourcePage": 25,
+    "sourceLine": 16
+  },
+  {
+    "materialName": "Brushless Solar Fan Package",
+    "unit": null,
+    "basePrice": 2800.0,
+    "section": "SOLAR ELECTRIC FAN",
+    "sourcePage": 25,
+    "sourceLine": 17
+  },
+  {
+    "materialName": "80W 12V",
+    "unit": null,
+    "basePrice": 690.0,
+    "section": "SOLAR DC IRON",
+    "sourcePage": 25,
+    "sourceLine": 20
+  },
+  {
+    "materialName": "150W 12V",
+    "unit": null,
+    "basePrice": 990.0,
+    "section": "SOLAR DC IRON",
+    "sourcePage": 25,
+    "sourceLine": 21
+  },
+  {
+    "materialName": "3Liters 200watts",
+    "unit": null,
+    "basePrice": 1500.0,
+    "section": "SOLAR RICE COOKER",
+    "sourcePage": 25,
+    "sourceLine": 23
+  },
+  {
+    "materialName": "4Liters 250watts",
+    "unit": null,
+    "basePrice": 1700.0,
+    "section": "SOLAR RICE COOKER",
+    "sourcePage": 25,
+    "sourceLine": 24
+  },
+  {
+    "materialName": "5Liters 250watts",
+    "unit": null,
+    "basePrice": 1800.0,
+    "section": "SOLAR RICE COOKER",
+    "sourcePage": 25,
+    "sourceLine": 25
+  },
+  {
+    "materialName": "1.5watts",
+    "unit": "pc/s",
+    "basePrice": 65.0,
+    "section": "SOLAR RICE COOKER",
+    "sourcePage": 25,
+    "sourceLine": 27
+  },
+  {
+    "materialName": "3watts",
+    "unit": "pc/s",
+    "basePrice": 80.0,
+    "section": "SOLAR RICE COOKER",
+    "sourcePage": 25,
+    "sourceLine": 28
+  },
+  {
+    "materialName": "5watts",
+    "unit": "pc/s",
+    "basePrice": 100.0,
+    "section": "SOLAR RICE COOKER",
+    "sourcePage": 25,
+    "sourceLine": 29
+  },
+  {
+    "materialName": "9watts",
+    "unit": "pc/s",
+    "basePrice": 140.0,
+    "section": "SOLAR RICE COOKER",
+    "sourcePage": 25,
+    "sourceLine": 30
+  },
+  {
+    "materialName": "12watts",
+    "unit": "pc/s",
+    "basePrice": 210.0,
+    "section": "SOLAR RICE COOKER",
+    "sourcePage": 25,
+    "sourceLine": 31
+  },
+  {
+    "materialName": "GDPLUS 8017",
+    "unit": null,
+    "basePrice": 690.0,
+    "section": "GDPLUS ALL BRANCHES",
+    "sourcePage": 25,
+    "sourceLine": 33
+  },
+  {
+    "materialName": "GDPLUS 8081",
+    "unit": null,
+    "basePrice": 700.0,
+    "section": "GDPLUS ALL BRANCHES",
+    "sourcePage": 25,
+    "sourceLine": 34
+  },
+  {
+    "materialName": "GDPLUS SUPER 15",
+    "unit": null,
+    "basePrice": 1050.0,
+    "section": "GDPLUS ALL BRANCHES",
+    "sourcePage": 25,
+    "sourceLine": 35
+  },
+  {
+    "materialName": "GDPLUS SUPER 16",
+    "unit": null,
+    "basePrice": 950.0,
+    "section": "GDPLUS ALL BRANCHES",
+    "sourcePage": 25,
+    "sourceLine": 36
+  }
+]

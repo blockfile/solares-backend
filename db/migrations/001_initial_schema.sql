@@ -1,0 +1,111 @@
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  username VARCHAR(64) NOT NULL UNIQUE,
+  email VARCHAR(150) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(64) NOT NULL DEFAULT 'admin',
+  status VARCHAR(16) NOT NULL DEFAULT 'active',
+  must_change_password TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS roles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  role_key VARCHAR(64) NOT NULL UNIQUE,
+  role_name VARCHAR(100) NOT NULL,
+  description VARCHAR(255) NULL,
+  modules_json LONGTEXT NOT NULL,
+  status VARCHAR(16) NOT NULL DEFAULT 'active',
+  is_system TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS events (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  created_by_user_id INT NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  activity_type VARCHAR(40) NOT NULL DEFAULT 'site_visit',
+  customer_name VARCHAR(160) NULL,
+  location VARCHAR(255) NULL,
+  start_datetime DATETIME NOT NULL,
+  end_datetime DATETIME NULL,
+  all_day TINYINT(1) DEFAULT 0,
+  status VARCHAR(24) NOT NULL DEFAULT 'planned',
+  notes TEXT NULL,
+  completion_notes TEXT NULL,
+  completion_photo_path VARCHAR(255) NULL,
+  completion_photo_name VARCHAR(255) NULL,
+  completed_at DATETIME NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (created_by_user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS quote_templates (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  sheet_name VARCHAR(150) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS template_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  template_id INT NOT NULL,
+  item_no INT NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  unit VARCHAR(50) NULL,
+  qty DECIMAL(12,2) NOT NULL DEFAULT 1,
+  base_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  is_panel_item TINYINT(1) DEFAULT 0,
+  panel_watt INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (template_id) REFERENCES quote_templates(id)
+);
+
+CREATE TABLE IF NOT EXISTS quotes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  quote_ref VARCHAR(50) NOT NULL UNIQUE,
+  customer_name VARCHAR(200) NOT NULL,
+  quote_date DATE NOT NULL,
+  valid_until DATE NOT NULL,
+  template_id INT NOT NULL,
+  markup_rate DECIMAL(6,4) NOT NULL DEFAULT 0.015,
+  installation_rate_per_kw DECIMAL(12,2) NOT NULL DEFAULT 9000,
+  subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+  total DECIMAL(12,2) NOT NULL DEFAULT 0,
+  created_by INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (template_id) REFERENCES quote_templates(id),
+  FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS quote_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  quote_id INT NOT NULL,
+  item_no INT NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  unit VARCHAR(50) NULL,
+  qty DECIMAL(12,2) NOT NULL,
+  base_price DECIMAL(12,2) NOT NULL,
+  unit_price DECIMAL(12,2) NOT NULL,
+  line_total DECIMAL(12,2) NOT NULL,
+  is_installation TINYINT(1) DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (quote_id) REFERENCES quotes(id)
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NULL,
+  actor_name VARCHAR(100) NULL,
+  module VARCHAR(100) NOT NULL,
+  action VARCHAR(100) NOT NULL,
+  details TEXT NULL,
+  ip_address VARCHAR(64) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
