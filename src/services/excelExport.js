@@ -419,9 +419,10 @@ async function buildFromTemplate({ quote, items }) {
   } catch {}
   ws.mergeCells(`A${totalRow}:F${totalRow}`);
   ws.getCell(`A${totalRow}`).value = "TOTAL PRICE IN PHILIPPINE PESO";
-  ws.getCell(`G${totalRow}`).value = {
-    formula: `SUM(G${itemStartRow}:G${Math.max(itemStartRow, totalRow - 1)})`
-  };
+  const exportSubtotal = roundPeso(
+    exportItems.reduce((sum, line) => sum + Number(line.lineTotal || 0), 0)
+  );
+  ws.getCell(`G${totalRow}`).value = exportSubtotal;
   ws.getCell(`G${totalRow}`).numFmt = "#,##0.00";
   const yellowFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
   const totalRowHeight = ws.getRow(totalRow).height;
@@ -474,10 +475,13 @@ async function buildFromTemplate({ quote, items }) {
   applySummaryRow(
     totalRow,
     "TOTAL PRICE IN PHILIPPINE PESO",
-    { formula: `SUM(G${itemStartRow}:G${Math.max(itemStartRow, totalRow - 1)})` }
+    exportSubtotal
   );
 
   const xlsDiscItems = parseDiscountItems(quote);
+  const exportDiscountTotal = roundPeso(
+    xlsDiscItems.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  );
 
   if (xlsDiscItems.length > 0) {
     let curRow = totalRow + 1;
@@ -491,11 +495,10 @@ async function buildFromTemplate({ quote, items }) {
       curRow++;
     }
     const finalRow = curRow;
-    const discSum = `SUM(${Array.from({ length: xlsDiscItems.length }, (_, i) => `G${totalRow + 1 + i}`).join(",")})`;
     applySummaryRow(
       finalRow,
       "TOTAL PRICE (Php) after DISCOUNT",
-      { formula: `G${totalRow}+${discSum}` }
+      exportSubtotal - exportDiscountTotal
     );
 
     removeTemplateNoteSection(ws, finalRow + 1, 500);
