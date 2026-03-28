@@ -1,7 +1,10 @@
 const pool = require("../config/db");
 const {
+  DEFAULT_INSTALLATION_MARKUP_RATE,
   DEFAULT_MATERIAL_MARKUP_RATE,
-  applyMaterialMarkup
+  applyInstallationMarkup,
+  applyMaterialMarkup,
+  computeInstallation
 } = require("../services/pricing");
 const {
   buildCustomerQuotationExcel,
@@ -112,10 +115,6 @@ exports.createQuoteFromTemplate = async (req, res) => {
     return res.status(400).json({ message: "Invalid templateId" });
   }
 
-  if (!parsedPackagePriceId) {
-    return res.status(400).json({ message: "Package scenario is required" });
-  }
-
   if (!customerName || !quoteDate || !validUntil) {
     return res.status(400).json({ message: "Missing required fields" });
   }
@@ -135,28 +134,32 @@ exports.createQuoteFromTemplate = async (req, res) => {
   );
   if (!templateItems.length) return res.status(404).json({ message: "Template not found or empty" });
 
-  const pricingMode = "fixed_package";
+  let pricingMode = "formula";
   let packagePriceTarget = null;
   let packagePriceRefId = null;
-  const [priceRows] = await pool.query(
-    `SELECT id, template_id, scenario_label, package_price, is_active
-     FROM package_prices
-     WHERE id=? AND template_id=?
-     LIMIT 1`,
-    [parsedPackagePriceId, parsedTemplateId]
-  );
 
-  if (!priceRows.length) {
-    return res.status(400).json({ message: "Selected package price is invalid for this template" });
+  if (parsedPackagePriceId > 0) {
+    const [priceRows] = await pool.query(
+      `SELECT id, template_id, scenario_label, package_price, is_active
+       FROM package_prices
+       WHERE id=? AND template_id=?
+       LIMIT 1`,
+      [parsedPackagePriceId, parsedTemplateId]
+    );
+
+    if (!priceRows.length) {
+      return res.status(400).json({ message: "Selected package price is invalid for this template" });
+    }
+
+    if (Number(priceRows[0].is_active) !== 1) {
+      return res.status(400).json({ message: "Selected package price is inactive" });
+    }
+
+    pricingMode = "fixed_package";
+    packagePriceTarget = toNumber(priceRows[0].package_price, 0);
+    packagePriceRefId = Number(priceRows[0].id);
+    packageScenarioLabel = String(priceRows[0].scenario_label || "").trim() || null;
   }
-
-  if (Number(priceRows[0].is_active) !== 1) {
-    return res.status(400).json({ message: "Selected package price is inactive" });
-  }
-
-  packagePriceTarget = toNumber(priceRows[0].package_price, 0);
-  packagePriceRefId = Number(priceRows[0].id);
-  packageScenarioLabel = String(priceRows[0].scenario_label || "").trim() || null;
 
   const priceIndex = await getMaterialPriceIndex();
 
@@ -248,8 +251,14 @@ exports.createQuoteFromTemplate = async (req, res) => {
       .sort((a, b) => Number(a.item_no) - Number(b.item_no));
   }
 
+  // Find panel item qty and watt for installation formula
+  const panelItem = items.find((x) => x.is_panel_item === 1);
+  const panelQty = panelItem ? Number(panelItem.qty) : 0;
+  const panelWatt = panelItem ? Number(panelItem.panel_watt || 0) : 0;
+
   const markupRate = DEFAULT_MATERIAL_MARKUP_RATE;
-  const installationRatePerWatt = 0;
+  const installationMarkupRate = DEFAULT_INSTALLATION_MARKUP_RATE;
+  const installationRatePerWatt = 9;
 
   let subtotal = 0;
 
@@ -291,8 +300,13 @@ exports.createQuoteFromTemplate = async (req, res) => {
   }
 
   const materialsSubtotal = subtotal;
-  const installation = Math.max(0, Math.round(toNumber(packagePriceTarget, 0) - materialsSubtotal));
-  const installationBasePrice = installation;
+
+  const installationBasePrice = computeInstallation(panelQty, panelWatt, installationRatePerWatt);
+  let installation = applyInstallationMarkup(installationBasePrice, installationMarkupRate);
+  if (pricingMode === "fixed_package" && packagePriceTarget != null) {
+    installation = Math.round(packagePriceTarget - materialsSubtotal);
+    if (installation < 0) installation = 0;
+  }
 
   subtotal = materialsSubtotal + installation;
 
