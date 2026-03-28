@@ -16,6 +16,7 @@ const auditRoutes = require("./src/routes/audit.routes");
 
 const app = express();
 
+app.set("trust proxy", 1);
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json({ limit: "10mb" }));
 app.use(helmet());
