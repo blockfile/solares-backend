@@ -101,9 +101,15 @@ exports.listQuotes = async (req, res) => {
 };
 
 exports.createQuoteFromTemplate = async (req, res) => {
-  const { templateId, customerName, quoteDate, validUntil, packagePriceId, items: customItems } = req.body;
+  const { templateId, customerName, quoteDate, validUntil, packagePriceId, discountAmount, discountItems, items: customItems } = req.body;
   const parsedTemplateId = Number(templateId);
   const parsedPackagePriceId = Number(packagePriceId || 0);
+
+  // Support array of discount items OR single discountAmount for backward compat
+  const parsedDiscountItems = Array.isArray(discountItems) && discountItems.length > 0
+    ? discountItems.map((d) => ({ label: String(d.label || "Discount").trim(), amount: Math.max(0, Number(d.amount || 0)) })).filter((d) => d.amount > 0)
+    : (Number(discountAmount || 0) > 0 ? [{ label: "Promotional Discount", amount: Math.max(0, Number(discountAmount || 0)) }] : []);
+  const parsedDiscount = parsedDiscountItems.reduce((s, d) => s + d.amount, 0);
 
   if (!parsedTemplateId) {
     return res.status(400).json({ message: "Invalid templateId" });
@@ -258,8 +264,8 @@ exports.createQuoteFromTemplate = async (req, res) => {
 
   // Insert quote header
   const [q] = await pool.query(
-    `INSERT INTO quotes(quote_ref,customer_name,quote_date,valid_until,template_id,markup_rate,installation_rate_per_kw,pricing_mode,package_price_target,package_price_id,subtotal,total,created_by)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO quotes(quote_ref,customer_name,quote_date,valid_until,template_id,markup_rate,installation_rate_per_kw,pricing_mode,package_price_target,package_price_id,subtotal,total,discount_amount,discount_items,created_by)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       quoteRef,
       customerName,
@@ -273,6 +279,8 @@ exports.createQuoteFromTemplate = async (req, res) => {
       packagePriceRefId,
       0,
       0,
+      parsedDiscount,
+      parsedDiscountItems.length > 0 ? JSON.stringify(parsedDiscountItems) : null,
       req.user.id
     ]
   );
@@ -308,7 +316,11 @@ exports.createQuoteFromTemplate = async (req, res) => {
     [quoteId, 999, "Complete Installation", "JOB", 1, installationBasePrice, installation, installation]
   );
 
-  await pool.query("UPDATE quotes SET subtotal=?, total=? WHERE id=?", [subtotal, subtotal, quoteId]);
+  const finalTotal = subtotal - parsedDiscount;
+  await pool.query(
+    "UPDATE quotes SET subtotal=?, total=?, discount_amount=?, discount_items=? WHERE id=?",
+    [subtotal, finalTotal, parsedDiscount, parsedDiscountItems.length > 0 ? JSON.stringify(parsedDiscountItems) : null, quoteId]
+  );
 
   await safeLogAudit({
     userId: req.user.id,
@@ -323,7 +335,10 @@ exports.createQuoteFromTemplate = async (req, res) => {
     success: true,
     quoteId,
     quoteRef,
-    total: subtotal,
+    subtotal,
+    discountAmount: parsedDiscount,
+    discountItems: parsedDiscountItems,
+    total: finalTotal,
     itemCount: items.length + 1,
     pricingMode,
     packagePriceTarget

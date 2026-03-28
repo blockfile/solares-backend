@@ -191,8 +191,11 @@ function summarizeForExport(quote, items) {
   if (mountingLine && mountingLine.lineTotal > 0) lines.push(mountingLine);
 
   const displayedMaterialTotal = roundPeso(lines.reduce((sum, line) => sum + Number(line.lineTotal || 0), 0));
-  const totalTarget = Number.isFinite(Number(quote?.total))
-    ? roundPeso(quote.total)
+  const preDiscountTotal = Number.isFinite(Number(quote?.subtotal)) && Number(quote.subtotal) > 0
+    ? roundPeso(quote.subtotal)
+    : Number.isFinite(Number(quote?.total)) ? roundPeso(quote.total) : null;
+  const totalTarget = preDiscountTotal != null
+    ? preDiscountTotal
     : displayedMaterialTotal + installationTotal;
   const reconciledInstallation = Math.max(0, roundPeso(totalTarget - displayedMaterialTotal));
 
@@ -420,8 +423,85 @@ async function buildFromTemplate({ quote, items }) {
     formula: `SUM(G${itemStartRow}:G${Math.max(itemStartRow, totalRow - 1)})`
   };
   ws.getCell(`G${totalRow}`).numFmt = "#,##0.00";
+  const yellowFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
+  const totalRowHeight = ws.getRow(totalRow).height;
 
-  removeTemplateNoteSection(ws, totalRow + 1, 500);
+  function applyYellowRow(rowNum) {
+    for (let c = 1; c <= 7; c++) {
+      const s = cloneStyle(totalCellStyles[c - 1]);
+      s.fill = yellowFill;
+      ws.getCell(rowNum, c).style = s;
+    }
+  }
+
+  function styleSummaryValueCell(rowNum, { fontColor = "FF000000" } = {}) {
+    const valueCell = ws.getCell(`G${rowNum}`);
+    valueCell.fill = yellowFill;
+    valueCell.border = cloneStyle(totalCellStyles[6]?.border);
+    valueCell.alignment = { horizontal: "right", vertical: "middle" };
+    valueCell.font = {
+      ...(cloneStyle(totalCellStyles[6]?.font) || {}),
+      bold: true,
+      color: { argb: fontColor }
+    };
+    valueCell.numFmt = "#,##0.00";
+  }
+
+  function styleSummaryLabelCell(rowNum, { fontColor = "FF000000" } = {}) {
+    const labelCell = ws.getCell(`A${rowNum}`);
+    labelCell.fill = yellowFill;
+    labelCell.border = cloneStyle(totalCellStyles[0]?.border);
+    labelCell.alignment = { horizontal: "right", vertical: "middle" };
+    labelCell.font = {
+      ...(cloneStyle(totalCellStyles[0]?.font) || {}),
+      bold: true,
+      color: { argb: fontColor }
+    };
+  }
+
+  function applySummaryRow(rowNum, label, value, { fontColor = "FF000000" } = {}) {
+    applyYellowRow(rowNum);
+    if (totalRowHeight) ws.getRow(rowNum).height = totalRowHeight;
+    try { ws.unMergeCells(`A${rowNum}:F${rowNum}`); } catch {}
+    ws.mergeCells(`A${rowNum}:F${rowNum}`);
+    ws.getCell(`A${rowNum}`).value = label;
+    ws.getCell(`G${rowNum}`).value = value;
+    styleSummaryLabelCell(rowNum, { fontColor });
+    styleSummaryValueCell(rowNum, { fontColor });
+  }
+
+  // Ensure yellow fill on total row
+  applySummaryRow(
+    totalRow,
+    "TOTAL PRICE IN PHILIPPINE PESO",
+    { formula: `SUM(G${itemStartRow}:G${Math.max(itemStartRow, totalRow - 1)})` }
+  );
+
+  const xlsDiscItems = parseDiscountItems(quote);
+
+  if (xlsDiscItems.length > 0) {
+    let curRow = totalRow + 1;
+    for (const d of xlsDiscItems) {
+      applySummaryRow(
+        curRow,
+        String(d.label || "Discount").toUpperCase(),
+        -roundPeso(d.amount || 0),
+        { fontColor: "FFC0392B" }
+      );
+      curRow++;
+    }
+    const finalRow = curRow;
+    const discSum = `SUM(${Array.from({ length: xlsDiscItems.length }, (_, i) => `G${totalRow + 1 + i}`).join(",")})`;
+    applySummaryRow(
+      finalRow,
+      "TOTAL PRICE (Php) after DISCOUNT",
+      { formula: `G${totalRow}+${discSum}` }
+    );
+
+    removeTemplateNoteSection(ws, finalRow + 1, 500);
+  } else {
+    removeTemplateNoteSection(ws, totalRow + 1, 500);
+  }
 
   const buffer = await wb.xlsx.writeBuffer();
   return buffer;
@@ -454,8 +534,18 @@ async function buildBasic({ quote, items }) {
     r++;
   }
 
+  const basicSubtotal = exportItems.reduce((s, x) => s + Number(x.lineTotal || 0), 0);
+  const basicDiscount = roundPeso(quote.discount_amount || 0);
   ws.getCell(`A${r + 1}`).value = "TOTAL PRICE IN PHILIPPINE PESO";
-  ws.getCell(`E${r + 1}`).value = exportItems.reduce((s, x) => s + Number(x.lineTotal || 0), 0);
+  ws.getCell(`E${r + 1}`).value = basicSubtotal;
+  if (basicDiscount > 0) {
+    ws.getCell(`A${r + 2}`).value = "PROMOTIONAL DISCOUNT";
+    ws.getCell(`A${r + 2}`).font = { bold: true, color: { argb: "FFC0392B" } };
+    ws.getCell(`E${r + 2}`).value = -basicDiscount;
+    ws.getCell(`E${r + 2}`).font = { bold: true, color: { argb: "FFC0392B" } };
+    ws.getCell(`A${r + 3}`).value = "TOTAL PRICE (Php) after DISCOUNT";
+    ws.getCell(`E${r + 3}`).value = basicSubtotal - basicDiscount;
+  }
 
   return wb.xlsx.writeBuffer();
 }
@@ -531,9 +621,24 @@ async function buildCompanyBasic({ quote, items }) {
   return wb.xlsx.writeBuffer();
 }
 
+function parseDiscountItems(quote) {
+  if (quote.discount_items) {
+    try {
+      const parsed = typeof quote.discount_items === "string" ? JSON.parse(quote.discount_items) : quote.discount_items;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+  }
+  const amt = roundPeso(quote.discount_amount || 0);
+  if (amt > 0) return [{ label: "Promotional Discount", amount: amt }];
+  return [];
+}
+
 async function buildCustomerPdf({ quote, items }) {
   const lines = summarizeForExport(quote, items);
-  const total = roundPeso(lines.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0));
+  const subtotal = roundPeso(lines.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0));
+  const discountItems = parseDiscountItems(quote);
+  const discountAmount = discountItems.reduce((s, d) => s + Number(d.amount || 0), 0);
+  const total = subtotal - discountAmount;
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: "A4", margin: 40 });
@@ -583,8 +688,25 @@ async function buildCustomerPdf({ quote, items }) {
     doc.moveTo(40, y).lineTo(555, y).strokeColor("#23364d").stroke();
     y += 8;
     doc.font("Helvetica-Bold").fontSize(11);
+
     doc.text("TOTAL PRICE IN PHILIPPINE PESO", 280, y, { width: 180, align: "right" });
-    doc.text(formatCurrencyPhp(total), col.tp, y, { width: 65, align: "right" });
+    doc.text(formatCurrencyPhp(subtotal), col.tp, y, { width: 65, align: "right" });
+
+    if (discountItems.length > 0) {
+      for (const d of discountItems) {
+        y += 20;
+        if (y > 760) { doc.addPage(); y = 50; }
+        doc.fillColor("#c0392b").text(String(d.label || "Discount").toUpperCase(), 280, y, { width: 180, align: "right" });
+        doc.text(`-${formatCurrencyPhp(Number(d.amount || 0))}`, col.tp, y, { width: 65, align: "right" });
+        doc.fillColor("#000000");
+      }
+      y += 20;
+      doc.moveTo(40, y).lineTo(555, y).strokeColor("#23364d").stroke();
+      y += 8;
+      doc.font("Helvetica-Bold").fontSize(11);
+      doc.text("TOTAL PRICE (Php) after DISCOUNT", 280, y, { width: 180, align: "right" });
+      doc.text(formatCurrencyPhp(total), col.tp, y, { width: 65, align: "right" });
+    }
 
     doc.end();
   });
