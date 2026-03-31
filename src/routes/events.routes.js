@@ -34,11 +34,7 @@ const photoUpload = multer({
 });
 
 function uploadReportPhoto(req, res, next) {
-  photoUpload.fields([
-    { name: "photo", maxCount: 1 },
-    { name: "photos", maxCount: 10 },
-    { name: "photos[]", maxCount: 10 }
-  ])(req, res, (error) => {
+  photoUpload.any()(req, res, (error) => {
     if (error) {
       const message =
         error.code === "LIMIT_FILE_SIZE"
