@@ -224,6 +224,60 @@ async function removeStoredPhotos(photoPaths) {
   await Promise.all(uniquePaths.map((photoPath) => removeStoredPhoto(photoPath)));
 }
 
+async function updateEventReportRecord({
+  eventId,
+  finalStatus,
+  completionNotes,
+  primaryPhoto,
+  nextPhotos,
+  completedAt
+}) {
+  try {
+    await pool.query(
+      `UPDATE events
+       SET status=?,
+           completion_notes=?,
+           completion_photo_path=?,
+           completion_photo_name=?,
+           completion_photos_json=?,
+           completed_at=?
+       WHERE id=?`,
+      [
+        finalStatus,
+        completionNotes,
+        primaryPhoto?.path || null,
+        primaryPhoto?.name || null,
+        serializeCompletionPhotosJson(nextPhotos),
+        completedAt,
+        eventId
+      ]
+    );
+    return { multiPhotoSupported: true };
+  } catch (error) {
+    if (error?.code !== "ER_BAD_FIELD_ERROR") throw error;
+
+    await pool.query(
+      `UPDATE events
+       SET status=?,
+           completion_notes=?,
+           completion_photo_path=?,
+           completion_photo_name=?,
+           completed_at=?
+       WHERE id=?`,
+      [
+        finalStatus,
+        completionNotes,
+        primaryPhoto?.path || null,
+        primaryPhoto?.name || null,
+        completedAt,
+        eventId
+      ]
+    );
+
+    return { multiPhotoSupported: false };
+  }
+}
+
 async function loadAssignableUsers() {
   const [rows] = await pool.query(
     `SELECT u.id,
@@ -509,25 +563,14 @@ exports.submitReport = async (req, res) => {
   const nextPhotos = [...existingPhotos, ...uploadedPhotos];
   const primaryPhoto = getPrimaryCompletionPhoto(nextPhotos);
 
-  await pool.query(
-    `UPDATE events
-     SET status=?,
-         completion_notes=?,
-         completion_photo_path=?,
-         completion_photo_name=?,
-         completion_photos_json=?,
-         completed_at=?
-     WHERE id=?`,
-    [
-      finalStatus,
-      completionNotes,
-      primaryPhoto?.path || null,
-      primaryPhoto?.name || null,
-      serializeCompletionPhotosJson(nextPhotos),
-      completedAt,
-      eventId
-    ]
-  );
+  const updateResult = await updateEventReportRecord({
+    eventId,
+    finalStatus,
+    completionNotes,
+    primaryPhoto,
+    nextPhotos,
+    completedAt
+  });
 
   const updated = await loadEventRow(eventId);
 
@@ -540,7 +583,7 @@ exports.submitReport = async (req, res) => {
       uploadedPhotos.length
         ? ` with ${uploadedPhotos.length} work photo${uploadedPhotos.length === 1 ? "" : "s"}`
         : ""
-    }.`,
+    }${updateResult.multiPhotoSupported ? "" : " (legacy photo storage mode)."}.`,
     ipAddress: getRequestIp(req)
   });
 
