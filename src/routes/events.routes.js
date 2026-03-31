@@ -21,10 +21,13 @@ const storage = multer.diskStorage({
 
 const photoUpload = multer({
   storage,
-  limits: { fileSize: 8 * 1024 * 1024 },
+  limits: {
+    fileSize: 20 * 1024 * 1024,
+    files: 10
+  },
   fileFilter: (_req, file, cb) => {
-    if (!/^image\/(jpeg|png|webp|gif)$/i.test(String(file.mimetype || ""))) {
-      return cb(new Error("Only JPG, PNG, WEBP, or GIF images are allowed"));
+    if (!/^image\/(jpeg|png|webp|gif|heic|heif)$/i.test(String(file.mimetype || ""))) {
+      return cb(new Error("Only JPG, PNG, WEBP, GIF, HEIC, or HEIF images are allowed"));
     }
     return cb(null, true);
   }
@@ -33,10 +36,17 @@ const photoUpload = multer({
 function uploadReportPhoto(req, res, next) {
   photoUpload.fields([
     { name: "photo", maxCount: 1 },
-    { name: "photos", maxCount: 10 }
+    { name: "photos", maxCount: 10 },
+    { name: "photos[]", maxCount: 10 }
   ])(req, res, (error) => {
     if (error) {
-      return res.status(400).json({ message: error.message || "Failed to upload event photo" });
+      const message =
+        error.code === "LIMIT_FILE_SIZE"
+          ? "Each photo must be 20 MB or smaller"
+          : error.code === "LIMIT_FILE_COUNT"
+            ? "You can upload up to 10 photos per report"
+            : error.message || "Failed to upload event photo";
+      return res.status(400).json({ message });
     }
     return next();
   });
