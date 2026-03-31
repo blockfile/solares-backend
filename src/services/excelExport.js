@@ -12,6 +12,19 @@ function normalizeText(value) {
   return String(value || "").toLowerCase();
 }
 
+function cleanDisplayText(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeLooseText(value) {
+  return normalizeText(value)
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const VALID_SECTION_KEYS = new Set([
   "main_system",
   "dc_pv",
@@ -61,6 +74,92 @@ function isInverterDescription(description) {
   );
 }
 
+function buildItemSearchText(item) {
+  return cleanDisplayText(
+    [
+      item?.description,
+      item?.template_description,
+      item?.catalog_material_name,
+      item?.catalog_source_section
+    ]
+      .filter((value) => String(value || "").trim())
+      .join(" ")
+  );
+}
+
+function inferBrandName(subgroup, item) {
+  const rawText = buildItemSearchText(item);
+  const text = normalizeText(rawText);
+
+  if (subgroup === "panel") {
+    if (text.includes("canadian") || /\bcs\d/i.test(rawText)) return "Canadian Solar";
+    if (text.includes("jinko") || /\bjkm/i.test(rawText)) return "Jinko Solar";
+    if (text.includes("trina") || /\btsm/i.test(rawText)) return "Trina Solar";
+    if (text.includes("ja solar") || /\bjam\d/i.test(rawText)) return "JA Solar";
+    return null;
+  }
+
+  if (subgroup === "inverter") {
+    if (text.includes("deye") || /\bsun-\d/i.test(rawText)) return "DEYE";
+    if (text.includes("solis") || /\bs[56]-[a-z0-9-]+/i.test(rawText)) return "SOLIS";
+    if (text.includes("srne") || text.includes("snre")) return "SRNE";
+    return null;
+  }
+
+  if (subgroup === "battery") {
+    if (text.includes("srne") || text.includes("snre") || /\bsr-[a-z0-9-]+/i.test(rawText)) return "SRNE";
+    if (text.includes("menred") || text.includes("mendred")) return "MENRED";
+    if (text.includes("pylontech")) return "Pylontech";
+    return null;
+  }
+
+  return null;
+}
+
+function stripGenericProductPrefix(description, subgroup) {
+  const raw = cleanDisplayText(description);
+  if (!raw) return "";
+
+  if (subgroup === "panel") {
+    return cleanDisplayText(raw.replace(/^solar\s+panel\s*[-:]?\s*/i, ""));
+  }
+
+  if (subgroup === "inverter") {
+    return cleanDisplayText(
+      raw
+        .replace(/^(hybrid|grid[\s-]*tie|off[\s-]*grid)\s+inverter\s*[-:]?\s*/i, "")
+        .replace(/^inverter\s*[-:]?\s*/i, "")
+    );
+  }
+
+  if (subgroup === "battery") {
+    return cleanDisplayText(
+      raw
+        .replace(/^(lifepo4|lipo4|lithium)\s*battery\s*[-:]?\s*/i, "")
+        .replace(/^battery\s*[-:]?\s*/i, "")
+    );
+  }
+
+  return raw;
+}
+
+function buildProductDisplayName(item, subgroup, fallbackLabel) {
+  const raw = cleanDisplayText(
+    item?.description || item?.catalog_material_name || item?.template_description || fallbackLabel || ""
+  );
+  if (!raw) return cleanDisplayText(fallbackLabel);
+
+  const brand = inferBrandName(subgroup, item);
+  if (!brand) return raw;
+
+  if (normalizeLooseText(raw).includes(normalizeLooseText(brand))) {
+    return raw;
+  }
+
+  const stripped = stripGenericProductPrefix(raw, subgroup);
+  return cleanDisplayText(`${brand} ${stripped || raw}`);
+}
+
 function isMountingDescription(description) {
   const text = normalizeText(description);
   if (text.includes("din rail")) return false;
@@ -84,6 +183,50 @@ function isMountingItem(item) {
   const sectionKey = resolveSectionKey(item.section_key);
   if (sectionKey) return sectionKey === "mounting_structural";
   return isMountingDescription(item.description);
+}
+
+function groupQuoteItems(items) {
+  const nonInstallation = items.filter((it) => Number(it.is_installation) !== 1);
+  const installationTotal = roundPeso(
+    items
+      .filter((it) => Number(it.is_installation) === 1)
+      .reduce((s, it) => s + Number(it.line_total || 0), 0)
+  );
+
+  const inverterItems = nonInstallation.filter((it) => isInverterDescription(it.description));
+  const panelItems = nonInstallation.filter((it) => isPanelDescription(it.description));
+  const batteryItems = nonInstallation.filter((it) => isBatteryDescription(it.description));
+
+  const taken = new Set([
+    ...inverterItems.map((x) => x.id),
+    ...panelItems.map((x) => x.id),
+    ...batteryItems.map((x) => x.id)
+  ]);
+  const remaining = nonInstallation.filter((it) => !taken.has(it.id));
+
+  return {
+    nonInstallation,
+    installationTotal,
+    inverterItems,
+    panelItems,
+    batteryItems,
+    mountingItems: remaining.filter((it) => isMountingItem(it)),
+    safetyItems: remaining.filter((it) => !isMountingItem(it))
+  };
+}
+
+function resolveTechnicalSpecs(groups) {
+  return {
+    panel: groups.panelItems[0]
+      ? buildProductDisplayName(groups.panelItems[0], "panel", "Solar Panel")
+      : "",
+    inverter: groups.inverterItems[0]
+      ? buildProductDisplayName(groups.inverterItems[0], "inverter", "Inverter")
+      : "",
+    battery: groups.batteryItems[0]
+      ? buildProductDisplayName(groups.batteryItems[0], "battery", "Battery")
+      : ""
+  };
 }
 
 function computeLineFromStoredTotals(rows, { description, qty, unit }) {
@@ -126,26 +269,10 @@ function resolveMaterialMarkupRate(quote) {
 }
 
 function summarizeForExport(quote, items) {
-  const nonInstallation = items.filter((it) => Number(it.is_installation) !== 1);
-  const installationTotal = roundPeso(
-    items
-      .filter((it) => Number(it.is_installation) === 1)
-      .reduce((s, it) => s + Number(it.line_total || 0), 0)
-  );
+  const groups = groupQuoteItems(items);
+  const { installationTotal, inverterItems, panelItems, batteryItems, mountingItems, safetyItems } = groups;
+  const specs = resolveTechnicalSpecs(groups);
   const materialMarkupRate = resolveMaterialMarkupRate(quote);
-
-  const inverterItems = nonInstallation.filter((it) => isInverterDescription(it.description));
-  const panelItems = nonInstallation.filter((it) => isPanelDescription(it.description));
-  const batteryItems = nonInstallation.filter((it) => isBatteryDescription(it.description));
-
-  const taken = new Set([
-    ...inverterItems.map((x) => x.id),
-    ...panelItems.map((x) => x.id),
-    ...batteryItems.map((x) => x.id)
-  ]);
-  const remaining = nonInstallation.filter((it) => !taken.has(it.id));
-  const mountingItems = remaining.filter((it) => isMountingItem(it));
-  const safetyItems = remaining.filter((it) => !isMountingItem(it));
 
   const inverterQty = inverterItems.reduce((s, x) => s + Number(x.qty || 0), 0);
   const panelQty = panelItems.reduce((s, x) => s + Number(x.qty || 0), 0);
@@ -154,21 +281,21 @@ function summarizeForExport(quote, items) {
   const lines = [];
 
   const inverterLine = computeLineFromStoredTotals(inverterItems, {
-    description: inverterItems[0]?.description || "Inverter",
+    description: specs.inverter || inverterItems[0]?.description || "Inverter",
     qty: inverterQty,
     unit: inverterItems[0]?.unit || "PCS"
   });
   if (inverterLine) lines.push(inverterLine);
 
   const panelLine = computeLineFromStoredTotals(panelItems, {
-    description: panelItems[0]?.description || "Solar Panel",
+    description: specs.panel || panelItems[0]?.description || "Solar Panel",
     qty: panelQty,
     unit: panelItems[0]?.unit || "PCS"
   });
   if (panelLine) lines.push(panelLine);
 
   const batteryLine = computeLineFromStoredTotals(batteryItems, {
-    description: batteryItems[0]?.description || "Battery",
+    description: specs.battery || batteryItems[0]?.description || "Battery",
     qty: batteryQty,
     unit: batteryItems[0]?.unit || "PCS"
   });
@@ -229,20 +356,9 @@ function computeLineFromBase(rows, { description, qty, unit }) {
 }
 
 function summarizeForCompany(items) {
-  const nonInstallation = items.filter((it) => Number(it.is_installation) !== 1);
-
-  const inverterItems = nonInstallation.filter((it) => isInverterDescription(it.description));
-  const panelItems = nonInstallation.filter((it) => isPanelDescription(it.description));
-  const batteryItems = nonInstallation.filter((it) => isBatteryDescription(it.description));
-
-  const taken = new Set([
-    ...inverterItems.map((x) => x.id),
-    ...panelItems.map((x) => x.id),
-    ...batteryItems.map((x) => x.id)
-  ]);
-  const remaining = nonInstallation.filter((it) => !taken.has(it.id));
-  const mountingItems = remaining.filter((it) => isMountingItem(it));
-  const safetyItems = remaining.filter((it) => !isMountingItem(it));
+  const groups = groupQuoteItems(items);
+  const { inverterItems, panelItems, batteryItems, mountingItems, safetyItems } = groups;
+  const specs = resolveTechnicalSpecs(groups);
 
   const inverterQty = inverterItems.reduce((s, x) => s + Number(x.qty || 0), 0);
   const panelQty = panelItems.reduce((s, x) => s + Number(x.qty || 0), 0);
@@ -251,21 +367,21 @@ function summarizeForCompany(items) {
   const lines = [];
 
   const inverterLine = computeLineFromBase(inverterItems, {
-    description: inverterItems[0]?.description || "Inverter",
+    description: specs.inverter || inverterItems[0]?.description || "Inverter",
     qty: inverterQty,
     unit: inverterItems[0]?.unit || "PCS"
   });
   if (inverterLine) lines.push(inverterLine);
 
   const panelLine = computeLineFromBase(panelItems, {
-    description: panelItems[0]?.description || "Solar Panel",
+    description: specs.panel || panelItems[0]?.description || "Solar Panel",
     qty: panelQty,
     unit: panelItems[0]?.unit || "PCS"
   });
   if (panelLine) lines.push(panelLine);
 
   const batteryLine = computeLineFromBase(batteryItems, {
-    description: batteryItems[0]?.description || "Battery",
+    description: specs.battery || batteryItems[0]?.description || "Battery",
     qty: batteryQty,
     unit: batteryItems[0]?.unit || "PCS"
   });
@@ -352,6 +468,19 @@ function removeTemplateNoteSection(ws, startRow = 1, endRow = 500) {
   }
 
   clearAndHideTemplateRows(ws, rowsToHide);
+}
+
+function populateTechnicalSpecifications(ws, items) {
+  const specs = resolveTechnicalSpecs(groupQuoteItems(items));
+  const rowMap = {
+    panel: findRowContains(ws, "solar panel type", 1, 500),
+    inverter: findRowContains(ws, "inverter type", 1, 500),
+    battery: findRowContains(ws, "battery type", 1, 500)
+  };
+
+  if (rowMap.panel) ws.getCell(`C${rowMap.panel}`).value = specs.panel || "";
+  if (rowMap.inverter) ws.getCell(`C${rowMap.inverter}`).value = specs.inverter || "";
+  if (rowMap.battery) ws.getCell(`C${rowMap.battery}`).value = specs.battery || "";
 }
 
 async function buildFromTemplate({ quote, items }) {
@@ -505,6 +634,8 @@ async function buildFromTemplate({ quote, items }) {
   } else {
     removeTemplateNoteSection(ws, totalRow + 1, 500);
   }
+
+  populateTechnicalSpecifications(ws, items);
 
   const buffer = await wb.xlsx.writeBuffer();
   return buffer;

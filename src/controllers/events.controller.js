@@ -70,7 +70,104 @@ function publicPhotoUrl(req, photoPath) {
   return `${base}${photoPath}`;
 }
 
+function getUploadedReportFiles(req) {
+  if (Array.isArray(req.files)) return req.files.filter(Boolean);
+
+  const files = [];
+  if (req.file) files.push(req.file);
+
+  if (req.files && typeof req.files === "object") {
+    for (const value of Object.values(req.files)) {
+      if (Array.isArray(value)) files.push(...value.filter(Boolean));
+    }
+  }
+
+  return files;
+}
+
+async function cleanupUploadedReportFiles(req) {
+  const files = getUploadedReportFiles(req);
+  await Promise.all(
+    files.map((file) => (file?.path ? fs.unlink(file.path).catch(() => {}) : Promise.resolve()))
+  );
+}
+
+function normalizeStoredPhoto(entry) {
+  const pathValue = String(
+    entry?.path ||
+      entry?.photoPath ||
+      entry?.completion_photo_path ||
+      entry?.completionPhotoPath ||
+      ""
+  ).trim();
+  if (!pathValue) return null;
+
+  const nameValue = String(
+    entry?.name ||
+      entry?.photoName ||
+      entry?.completion_photo_name ||
+      entry?.completionPhotoName ||
+      path.basename(pathValue) ||
+      ""
+  ).trim();
+
+  return {
+    path: pathValue,
+    name: nameValue || path.basename(pathValue)
+  };
+}
+
+function parseCompletionPhotos(row) {
+  const parsed = [];
+
+  if (row?.completion_photos_json) {
+    try {
+      const json = typeof row.completion_photos_json === "string"
+        ? JSON.parse(row.completion_photos_json)
+        : row.completion_photos_json;
+      if (Array.isArray(json)) {
+        for (const entry of json) {
+          const normalized = normalizeStoredPhoto(entry);
+          if (normalized) parsed.push(normalized);
+        }
+      }
+    } catch {
+      // Ignore malformed legacy photo json and fall back to legacy columns.
+    }
+  }
+
+  if (parsed.length > 0) return parsed;
+
+  const legacy = normalizeStoredPhoto(row);
+  return legacy ? [legacy] : [];
+}
+
+function serializeCompletionPhotos(row, req) {
+  return parseCompletionPhotos(row).map((photo, index) => ({
+    id: `${Number(row?.id || 0) || "event"}-${index + 1}`,
+    path: photo.path,
+    name: photo.name,
+    url: publicPhotoUrl(req, photo.path)
+  }));
+}
+
+function serializeCompletionPhotosJson(photos) {
+  const normalized = photos
+    .map((entry) => normalizeStoredPhoto(entry))
+    .filter(Boolean)
+    .map((entry) => ({ path: entry.path, name: entry.name }));
+
+  return normalized.length ? JSON.stringify(normalized) : null;
+}
+
+function getPrimaryCompletionPhoto(photos) {
+  return photos.length ? photos[photos.length - 1] : null;
+}
+
 function serializeEvent(row, req) {
+  const completionPhotos = serializeCompletionPhotos(row, req);
+  const primaryPhoto = getPrimaryCompletionPhoto(completionPhotos);
+
   return {
     id: Number(row.id),
     title: row.title,
@@ -83,9 +180,10 @@ function serializeEvent(row, req) {
     status: normalizeStatus(row.status),
     notes: row.notes || "",
     completionNotes: row.completion_notes || "",
-    completionPhotoPath: row.completion_photo_path || "",
-    completionPhotoName: row.completion_photo_name || "",
-    completionPhotoUrl: publicPhotoUrl(req, row.completion_photo_path),
+    completionPhotoPath: primaryPhoto?.path || "",
+    completionPhotoName: primaryPhoto?.name || "",
+    completionPhotoUrl: primaryPhoto?.url || "",
+    completionPhotos,
     completedAt: row.completed_at,
     assigneeUserId: Number(row.user_id),
     assigneeName: row.assignee_name || "",
@@ -119,6 +217,11 @@ async function removeStoredPhoto(photoPath) {
   } catch {
     // Ignore missing or already-removed files.
   }
+}
+
+async function removeStoredPhotos(photoPaths) {
+  const uniquePaths = [...new Set(photoPaths.map((value) => String(value || "").trim()).filter(Boolean))];
+  await Promise.all(uniquePaths.map((photoPath) => removeStoredPhoto(photoPath)));
 }
 
 async function loadAssignableUsers() {
@@ -380,21 +483,31 @@ exports.submitReport = async (req, res) => {
 
   const existing = await loadEventRow(eventId);
   if (!existing) {
-    if (req.file?.path) await fs.unlink(req.file.path).catch(() => {});
+    await cleanupUploadedReportFiles(req);
     return res.status(404).json({ message: "Activity not found" });
   }
 
   if (!canSubmitReport(req.user, existing)) {
-    if (req.file?.path) await fs.unlink(req.file.path).catch(() => {});
+    await cleanupUploadedReportFiles(req);
     return res.status(403).json({ message: "You can only submit reports for activities assigned to you" });
   }
 
+  const uploadedFiles = getUploadedReportFiles(req);
   const completionNotes = toNullableText(req.body.completionNotes || req.body.completion_notes);
   const requestedStatus = normalizeStatus(req.body.status || "completed");
   const finalStatus = requestedStatus === "cancelled" ? "cancelled" : requestedStatus;
   const completedAt = finalStatus === "completed" ? toMysqlDateTime(new Date().toISOString()) : null;
-  const nextPhotoPath = req.file ? `${EVENT_PHOTO_PREFIX}${req.file.filename}` : existing.completion_photo_path;
-  const nextPhotoName = req.file ? req.file.originalname : existing.completion_photo_name;
+  const existingPhotos = parseCompletionPhotos(existing);
+  const uploadedPhotos = uploadedFiles
+    .map((file) =>
+      normalizeStoredPhoto({
+        path: `${EVENT_PHOTO_PREFIX}${file.filename}`,
+        name: file.originalname || file.filename
+      })
+    )
+    .filter(Boolean);
+  const nextPhotos = [...existingPhotos, ...uploadedPhotos];
+  const primaryPhoto = getPrimaryCompletionPhoto(nextPhotos);
 
   await pool.query(
     `UPDATE events
@@ -402,14 +515,19 @@ exports.submitReport = async (req, res) => {
          completion_notes=?,
          completion_photo_path=?,
          completion_photo_name=?,
+         completion_photos_json=?,
          completed_at=?
      WHERE id=?`,
-    [finalStatus, completionNotes, nextPhotoPath, nextPhotoName, completedAt, eventId]
+    [
+      finalStatus,
+      completionNotes,
+      primaryPhoto?.path || null,
+      primaryPhoto?.name || null,
+      serializeCompletionPhotosJson(nextPhotos),
+      completedAt,
+      eventId
+    ]
   );
-
-  if (req.file && existing.completion_photo_path && existing.completion_photo_path !== nextPhotoPath) {
-    await removeStoredPhoto(existing.completion_photo_path);
-  }
 
   const updated = await loadEventRow(eventId);
 
@@ -418,7 +536,11 @@ exports.submitReport = async (req, res) => {
     actorName: req.user.name,
     module: "CALENDAR",
     action: "EVENT_REPORT_SUBMITTED",
-    details: `${updated?.title || existing.title} marked as ${finalStatus}${req.file ? " with a work photo" : ""}.`,
+    details: `${updated?.title || existing.title} marked as ${finalStatus}${
+      uploadedPhotos.length
+        ? ` with ${uploadedPhotos.length} work photo${uploadedPhotos.length === 1 ? "" : "s"}`
+        : ""
+    }.`,
     ipAddress: getRequestIp(req)
   });
 
@@ -436,9 +558,10 @@ exports.remove = async (req, res) => {
   }
 
   await pool.query("DELETE FROM events WHERE id=?", [eventId]);
-  if (existing.completion_photo_path) {
-    await removeStoredPhoto(existing.completion_photo_path);
-  }
+  await removeStoredPhotos([
+    ...parseCompletionPhotos(existing).map((photo) => photo.path),
+    existing.completion_photo_path
+  ]);
 
   await safeLogAudit({
     userId: req.user.id,

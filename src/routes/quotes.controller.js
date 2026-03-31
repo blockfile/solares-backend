@@ -14,14 +14,56 @@ const {
 const { getMaterialPriceIndex, applyCatalogPriceToItem } = require("../services/materialCatalog");
 const { getRequestIp, safeLogAudit } = require("../services/audit");
 
-function makeQuoteRef() {
-  // Example: Q-20260302-1234
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const rnd = Math.floor(1000 + Math.random() * 9000);
-  return `Q-${y}${m}${day}-${rnd}`;
+function resolveQuoteDateParts(value) {
+  const text = String(value || "").trim();
+  const directMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (directMatch) {
+    return {
+      year: directMatch[1],
+      stamp: `${directMatch[1]}${directMatch[2]}${directMatch[3]}`
+    };
+  }
+
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) {
+    const fallback = new Date();
+    return {
+      year: String(fallback.getFullYear()),
+      stamp: `${fallback.getFullYear()}${String(fallback.getMonth() + 1).padStart(2, "0")}${String(
+        fallback.getDate()
+      ).padStart(2, "0")}`
+    };
+  }
+
+  const year = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return { year, stamp: `${year}${month}${day}` };
+}
+
+async function makeQuoteRef(connection, quoteDate) {
+  const { year, stamp } = resolveQuoteDateParts(quoteDate);
+  const lockName = `quotes-ref-${year}`;
+  const [lockRows] = await connection.query("SELECT GET_LOCK(?, 10) AS acquired", [lockName]);
+  if (Number(lockRows[0]?.acquired || 0) !== 1) {
+    throw new Error("Failed to acquire quote reference lock");
+  }
+
+  try {
+    const [rows] = await connection.query(
+      `SELECT quote_ref
+       FROM quotes
+       WHERE quote_ref REGEXP ?
+       ORDER BY CAST(RIGHT(quote_ref, 5) AS UNSIGNED) DESC, id DESC
+       LIMIT 1`,
+      [`^Q-${year}[0-9]{4}-[0-9]{5}$`]
+    );
+
+    const currentSeries = Number(String(rows[0]?.quote_ref || "").match(/-(\d{5})$/)?.[1] || 0);
+    return `Q-${stamp}-${String(currentSeries + 1).padStart(5, "0")}`;
+  } finally {
+    await connection.query("SELECT RELEASE_LOCK(?)", [lockName]).catch(() => {});
+  }
 }
 
 function toNumber(value, fallback = 0) {
@@ -35,6 +77,62 @@ function parsePanelWatt(description, fallback = 0) {
   if (!m) return toNumber(fallback, 0);
   const watt = Number(m[1]);
   return Number.isFinite(watt) ? watt : toNumber(fallback, 0);
+}
+
+function isBatteryDescription(description) {
+  const text = String(description || "").toLowerCase();
+  return (
+    (text.includes("battery") || text.includes("lifepo") || text.includes("lipo4") || /\bah\b/.test(text)) &&
+    !text.includes("battery cable")
+  );
+}
+
+function extractBatteryAh(items) {
+  const batteryItem = (items || []).find((item) =>
+    isBatteryDescription(
+      item?.description || item?.template_description || item?.catalog_material_name || ""
+    )
+  );
+  if (!batteryItem) return "";
+
+  const source = [
+    batteryItem.description,
+    batteryItem.template_description,
+    batteryItem.catalog_material_name
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const match = String(source).match(/(\d+(?:\.\d+)?)\s*ah\b/i);
+  if (!match) return "";
+  return `${match[1]}Ah`;
+}
+
+function sanitizeFilenamePart(value) {
+  return String(value || "")
+    .replace(/[<>:"/\\|?*\u0000-\u001F]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildQuoteExportBaseName({ quote, items }) {
+  const quoteRef = sanitizeFilenamePart(quote?.quote_ref || `quote-${quote?.id || ""}`);
+  const customerName = sanitizeFilenamePart(quote?.customer_name || "");
+  const batteryAh = sanitizeFilenamePart(extractBatteryAh(items));
+
+  let baseName = quoteRef || `quote-${quote?.id || ""}`;
+  if (customerName) baseName += `-${customerName}`;
+  if (batteryAh) baseName += ` - ${batteryAh}`;
+  return baseName;
+}
+
+function setDownloadFilename(res, filename) {
+  const safeName = sanitizeFilenamePart(filename).replace(/"/g, "");
+  const fallbackName = safeName || "download";
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(fallbackName)}`
+  );
 }
 
 exports.listQuotes = async (req, res) => {
@@ -119,7 +217,6 @@ exports.createQuoteFromTemplate = async (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  const quoteRef = makeQuoteRef();
   let templateName = `Template #${parsedTemplateId}`;
   let packageScenarioLabel = null;
 
@@ -261,66 +358,80 @@ exports.createQuoteFromTemplate = async (req, res) => {
   const installationRatePerWatt = 9;
 
   let subtotal = 0;
+  const connection = await pool.getConnection();
+  let quoteRef = "";
+  let quoteId = 0;
+  let finalTotal = 0;
 
-  // Insert quote header
-  const [q] = await pool.query(
-    `INSERT INTO quotes(quote_ref,customer_name,quote_date,valid_until,template_id,markup_rate,installation_rate_per_kw,pricing_mode,package_price_target,package_price_id,subtotal,total,discount_amount,discount_items,created_by)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [
-      quoteRef,
-      customerName,
-      quoteDate,
-      validUntil,
-      parsedTemplateId,
-      markupRate,
-      installationRatePerWatt,
-      pricingMode,
-      packagePriceTarget,
-      packagePriceRefId,
-      0,
-      0,
-      parsedDiscount,
-      parsedDiscountItems.length > 0 ? JSON.stringify(parsedDiscountItems) : null,
-      req.user.id
-    ]
-  );
-  const quoteId = q.insertId;
+  try {
+    await connection.beginTransaction();
+    quoteRef = await makeQuoteRef(connection, quoteDate);
 
-  // Insert material items with markup
-  for (const it of items) {
-    const unitPrice = applyMaterialMarkup(Number(it.base_price), markupRate);
-    const lineTotal = unitPrice * Number(it.qty);
-    subtotal += lineTotal;
-
-    await pool.query(
-      `INSERT INTO quote_items(quote_id,item_no,description,unit,qty,base_price,unit_price,line_total,is_installation)
-       VALUES (?,?,?,?,?,?,?,?,0)`,
-      [quoteId, it.item_no, it.description, it.unit, it.qty, it.base_price, unitPrice, lineTotal]
+    const [q] = await connection.query(
+      `INSERT INTO quotes(quote_ref,customer_name,quote_date,valid_until,template_id,markup_rate,installation_rate_per_kw,pricing_mode,package_price_target,package_price_id,subtotal,total,discount_amount,discount_items,created_by)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [
+        quoteRef,
+        customerName,
+        quoteDate,
+        validUntil,
+        parsedTemplateId,
+        markupRate,
+        installationRatePerWatt,
+        pricingMode,
+        packagePriceTarget,
+        packagePriceRefId,
+        0,
+        0,
+        parsedDiscount,
+        parsedDiscountItems.length > 0 ? JSON.stringify(parsedDiscountItems) : null,
+        req.user.id
+      ]
     );
+    quoteId = q.insertId;
+
+    for (const it of items) {
+      const unitPrice = applyMaterialMarkup(Number(it.base_price), markupRate);
+      const lineTotal = unitPrice * Number(it.qty);
+      subtotal += lineTotal;
+
+      await connection.query(
+        `INSERT INTO quote_items(quote_id,item_no,description,unit,qty,base_price,unit_price,line_total,is_installation)
+         VALUES (?,?,?,?,?,?,?,?,0)`,
+        [quoteId, it.item_no, it.description, it.unit, it.qty, it.base_price, unitPrice, lineTotal]
+      );
+    }
+
+    const materialsSubtotal = subtotal;
+    const installationBasePrice = computeInstallation(panelQty, panelWatt, installationRatePerWatt);
+    let installation = applyInstallationMarkup(installationBasePrice, installationMarkupRate);
+    if (pricingMode === "fixed_package" && packagePriceTarget != null) {
+      installation = Math.round(packagePriceTarget - materialsSubtotal);
+      if (installation < 0) installation = 0;
+    }
+
+    subtotal = materialsSubtotal + installation;
+
+    await connection.query(
+      `INSERT INTO quote_items(quote_id,item_no,description,unit,qty,base_price,unit_price,line_total,is_installation)
+       VALUES (?,?,?,?,?,?,?,?,1)`,
+      [quoteId, 999, "Complete Installation", "JOB", 1, installationBasePrice, installation, installation]
+    );
+
+    finalTotal = subtotal - parsedDiscount;
+    await connection.query(
+      "UPDATE quotes SET subtotal=?, total=?, discount_amount=?, discount_items=? WHERE id=?",
+      [subtotal, finalTotal, parsedDiscount, parsedDiscountItems.length > 0 ? JSON.stringify(parsedDiscountItems) : null, quoteId]
+    );
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    console.error(error);
+    return res.status(500).json({ message: "Failed to create quote" });
+  } finally {
+    connection.release();
   }
-
-  const materialsSubtotal = subtotal;
-
-  const installationBasePrice = computeInstallation(panelQty, panelWatt, installationRatePerWatt);
-  let installation = applyInstallationMarkup(installationBasePrice, installationMarkupRate);
-  if (pricingMode === "fixed_package" && packagePriceTarget != null) {
-    installation = Math.round(packagePriceTarget - materialsSubtotal);
-    if (installation < 0) installation = 0;
-  }
-
-  subtotal = materialsSubtotal + installation;
-
-  await pool.query(
-    `INSERT INTO quote_items(quote_id,item_no,description,unit,qty,base_price,unit_price,line_total,is_installation)
-     VALUES (?,?,?,?,?,?,?,?,1)`,
-    [quoteId, 999, "Complete Installation", "JOB", 1, installationBasePrice, installation, installation]
-  );
-
-  const finalTotal = subtotal - parsedDiscount;
-  await pool.query(
-    "UPDATE quotes SET subtotal=?, total=?, discount_amount=?, discount_items=? WHERE id=?",
-    [subtotal, finalTotal, parsedDiscount, parsedDiscountItems.length > 0 ? JSON.stringify(parsedDiscountItems) : null, quoteId]
-  );
 
   await safeLogAudit({
     userId: req.user.id,
@@ -430,22 +541,42 @@ async function loadQuoteForExport(quoteId) {
   }
 
   const [templateItems] = await pool.query(
-    "SELECT item_no, section_key FROM template_items WHERE template_id=? ORDER BY item_no, id",
+    `SELECT
+      ti.item_no,
+      ti.section_key,
+      ti.description AS template_description,
+      ti.catalog_material_id,
+      mp.material_name AS catalog_material_name,
+      mp.source_section AS catalog_source_section,
+      mp.subgroup AS catalog_subgroup
+     FROM template_items ti
+     LEFT JOIN material_prices mp ON mp.id = ti.catalog_material_id
+     WHERE ti.template_id=?
+     ORDER BY ti.item_no, ti.id`,
     [quote.template_id]
   );
 
   const sectionByItemNo = new Map();
+  const templateMetaByItemNo = new Map();
   for (const item of templateItems) {
     const itemNo = Number(item.item_no || 0);
     if (!itemNo || sectionByItemNo.has(itemNo)) continue;
     sectionByItemNo.set(itemNo, item.section_key || null);
+    templateMetaByItemNo.set(itemNo, {
+      template_description: item.template_description || null,
+      catalog_material_id: Number(item.catalog_material_id || 0) || null,
+      catalog_material_name: item.catalog_material_name || null,
+      catalog_source_section: item.catalog_source_section || null,
+      catalog_subgroup: item.catalog_subgroup || null
+    });
   }
 
   return {
     quote,
     items: items.map((item) => ({
       ...item,
-      section_key: item.section_key || sectionByItemNo.get(Number(item.item_no || 0)) || null
+      section_key: item.section_key || sectionByItemNo.get(Number(item.item_no || 0)) || null,
+      ...(templateMetaByItemNo.get(Number(item.item_no || 0)) || {})
     }))
   };
 }
@@ -455,6 +586,7 @@ exports.exportCustomerExcel = async (req, res) => {
   if (!payload) return res.status(404).json({ message: "Quote not found" });
 
   const buffer = await buildCustomerQuotationExcel(payload);
+  const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
     userId: req.user.id,
@@ -466,10 +598,7 @@ exports.exportCustomerExcel = async (req, res) => {
   });
 
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${payload.quote.quote_ref}-customer.xlsx"`
-  );
+  setDownloadFilename(res, `${baseName}.xlsx`);
   res.send(buffer);
 };
 
@@ -478,6 +607,7 @@ exports.exportCustomerPdf = async (req, res) => {
   if (!payload) return res.status(404).json({ message: "Quote not found" });
 
   const buffer = await buildCustomerQuotationPdf(payload);
+  const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
     userId: req.user.id,
@@ -489,7 +619,7 @@ exports.exportCustomerPdf = async (req, res) => {
   });
 
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `attachment; filename="${payload.quote.quote_ref}-customer.pdf"`);
+  setDownloadFilename(res, `${baseName}.pdf`);
   res.send(buffer);
 };
 
@@ -498,6 +628,7 @@ exports.exportCompanyExcel = async (req, res) => {
   if (!payload) return res.status(404).json({ message: "Quote not found" });
 
   const buffer = await buildCompanyQuotationExcel(payload);
+  const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
     userId: req.user.id,
@@ -509,10 +640,7 @@ exports.exportCompanyExcel = async (req, res) => {
   });
 
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${payload.quote.quote_ref}-company.xlsx"`
-  );
+  setDownloadFilename(res, `${baseName} - Company.xlsx`);
   res.send(buffer);
 };
 
@@ -521,6 +649,7 @@ exports.exportQuoteExcel = async (req, res) => {
   if (!payload) return res.status(404).json({ message: "Quote not found" });
 
   const buffer = await buildCustomerQuotationExcel(payload);
+  const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
     userId: req.user.id,
@@ -532,6 +661,6 @@ exports.exportQuoteExcel = async (req, res) => {
   });
 
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  res.setHeader("Content-Disposition", `attachment; filename="${payload.quote.quote_ref}.xlsx"`);
+  setDownloadFilename(res, `${baseName}.xlsx`);
   res.send(buffer);
 };

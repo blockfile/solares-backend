@@ -31,7 +31,10 @@ const photoUpload = multer({
 });
 
 function uploadReportPhoto(req, res, next) {
-  photoUpload.single("photo")(req, res, (error) => {
+  photoUpload.fields([
+    { name: "photo", maxCount: 1 },
+    { name: "photos", maxCount: 10 }
+  ])(req, res, (error) => {
     if (error) {
       return res.status(400).json({ message: error.message || "Failed to upload event photo" });
     }
