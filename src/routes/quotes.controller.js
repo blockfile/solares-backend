@@ -266,6 +266,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
     unit: it.unit || null,
     qty: toNumber(it.qty, 1),
     base_price: toNumber(it.base_price, 0),
+    catalog_material_id: Number(it.catalog_material_id || 0) || null,
     is_panel_item: it.is_panel_item === 1 ? 1 : 0,
     panel_watt: toNumber(it.panel_watt, 0)
   }, priceIndex));

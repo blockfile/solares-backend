@@ -1,6 +1,10 @@
 const fs = require("fs");
 const pool = require("../config/db");
-const { normalizeMaterialName } = require("../services/materialCatalog");
+const {
+  normalizeMaterialName,
+  getMaterialPriceIndex,
+  applyCatalogPriceToItem
+} = require("../services/materialCatalog");
 const { normalizeSupplierName, parseMaterialPriceFile } = require("../services/materialPriceImport");
 const { describeAuditChange, formatAuditValue, getRequestIp, safeLogAudit } = require("../services/audit");
 
@@ -250,6 +254,56 @@ async function syncCatalogMaterialPrice(connection, normalizedName) {
   return { action: "created", materialId: insertResult.insertId, supplierId: chosen.supplier_id };
 }
 
+async function syncLinkedTemplateItemPrices(connection, materialIds) {
+  const ids = Array.from(new Set((materialIds || []).map((id) => Number(id || 0)).filter(Boolean)));
+  if (!ids.length) return 0;
+
+  const [result] = await connection.query(
+    `UPDATE template_items ti
+       JOIN material_prices mp ON mp.id = ti.catalog_material_id
+        SET ti.base_price = mp.base_price,
+            ti.unit = COALESCE(ti.unit, mp.unit)
+      WHERE ti.catalog_material_id IN (?)`,
+    [ids]
+  );
+  return Number(result.affectedRows || 0);
+}
+
+async function relinkTemplateItemsToCatalog(connection) {
+  const [rows] = await connection.query("SELECT * FROM template_items ORDER BY template_id, item_no, id");
+  const priceIndex = await getMaterialPriceIndex();
+  let linkedCount = 0;
+  let priceUpdatedCount = 0;
+
+  for (const row of rows) {
+    const resolved = applyCatalogPriceToItem(row, priceIndex);
+    const nextCatalogId = Number(resolved.catalog_material_id || 0) || null;
+    if (!nextCatalogId) continue;
+
+    const nextBasePrice = Number(resolved.base_price || 0);
+    const currentCatalogId = Number(row.catalog_material_id || 0) || null;
+    const currentBasePrice = Number(row.base_price || 0);
+    const shouldLink = currentCatalogId !== nextCatalogId;
+    const shouldUpdatePrice = Math.abs(currentBasePrice - nextBasePrice) > 0.004;
+
+    if (!shouldLink && !shouldUpdatePrice) continue;
+
+    await connection.query(
+      `UPDATE template_items
+          SET catalog_material_id=?,
+              base_price=?,
+              unit=COALESCE(unit, ?)
+        WHERE id=?`,
+      [nextCatalogId, nextBasePrice, resolved.unit || null, row.id]
+    );
+
+    if (shouldLink) linkedCount += 1;
+    if (shouldUpdatePrice) priceUpdatedCount += 1;
+  }
+
+  return { checkedCount: rows.length, linkedCount, priceUpdatedCount };
+}
+
 exports.list = async (req, res) => {
   const q = String(req.query.q || "").trim();
   const category = String(req.query.category || "").trim();
@@ -419,6 +473,91 @@ exports.updateSupplier = async (req, res) => {
     if (isSupplierSchemaError(error)) return sendSupplierSchemaError(res);
     throw error;
   }
+};
+
+exports.removeSupplier = async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ message: "Invalid supplier id" });
+
+  const connection = await pool.getConnection();
+  let deletedSupplier = null;
+  let deletedMaterialCount = 0;
+  let deletedPriceListCount = 0;
+  let storedPaths = [];
+
+  try {
+    await connection.beginTransaction();
+
+    const [supplierRows] = await connection.query("SELECT * FROM suppliers WHERE id=? LIMIT 1", [id]);
+    if (!supplierRows.length) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+    deletedSupplier = supplierRows[0];
+
+    const [priceRows] = await connection.query(
+      "SELECT DISTINCT normalized_name FROM supplier_material_prices WHERE supplier_id=?",
+      [id]
+    );
+    const affectedNames = priceRows.map((row) => row.normalized_name).filter(Boolean);
+
+    const [priceListRows] = await connection.query(
+      "SELECT id, stored_path FROM supplier_price_lists WHERE supplier_id=?",
+      [id]
+    );
+    storedPaths = priceListRows.map((row) => row.stored_path).filter(Boolean);
+    deletedPriceListCount = priceListRows.length;
+
+    const [materialDeleteResult] = await connection.query(
+      "DELETE FROM supplier_material_prices WHERE supplier_id=?",
+      [id]
+    );
+    deletedMaterialCount = Number(materialDeleteResult.affectedRows || 0);
+
+    await connection.query(
+      `UPDATE material_prices
+          SET active_supplier_id=NULL,
+              active_price_list_id=NULL,
+              price_selection_mode='catalog_auto'
+        WHERE active_supplier_id=?`,
+      [id]
+    );
+
+    await connection.query("DELETE FROM supplier_price_lists WHERE supplier_id=?", [id]);
+    await connection.query("DELETE FROM suppliers WHERE id=?", [id]);
+
+    for (const normalizedName of affectedNames) {
+      await syncCatalogMaterialPrice(connection, normalizedName);
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    if (isSupplierSchemaError(error)) return sendSupplierSchemaError(res);
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  for (const storedPath of storedPaths) {
+    removeFileIfExists(storedPath);
+  }
+
+  await safeLogAudit({
+    userId: req.user.id,
+    actorName: req.user.name,
+    module: "MATERIALS",
+    action: "SUPPLIER_DELETED",
+    details: `${deletedSupplier.supplier_name} supplier deleted. Removed ${deletedMaterialCount} material price rows and ${deletedPriceListCount} price list uploads.`,
+    ipAddress: getRequestIp(req)
+  });
+
+  return res.json({
+    success: true,
+    supplier: deletedSupplier,
+    deletedMaterialCount,
+    deletedPriceListCount
+  });
 };
 
 exports.listPriceLists = async (req, res) => {
@@ -710,9 +849,12 @@ exports.importSupplierPriceList = async (req, res) => {
 
     if (applyToCatalog) {
       const affectedNames = Array.from(new Set([...normalizedNames, ...removedNames]));
+      const affectedMaterialIds = [];
       for (const normalizedName of affectedNames) {
-        await syncCatalogMaterialPrice(connection, normalizedName);
+        const syncResult = await syncCatalogMaterialPrice(connection, normalizedName);
+        if (syncResult?.materialId) affectedMaterialIds.push(syncResult.materialId);
       }
+      await syncLinkedTemplateItemPrices(connection, affectedMaterialIds);
     }
 
     await connection.query(
@@ -854,6 +996,31 @@ exports.selectSupplierPrice = async (req, res) => {
   }
 };
 
+exports.syncTemplateCatalogLinks = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const result = await relinkTemplateItemsToCatalog(connection);
+    await connection.commit();
+
+    await safeLogAudit({
+      userId: req.user.id,
+      actorName: req.user.name,
+      module: "MATERIALS",
+      action: "TEMPLATE_CATALOG_LINKS_SYNCED",
+      details: `Template catalog links synced. Checked: ${result.checkedCount}. Linked: ${result.linkedCount}. Price updates: ${result.priceUpdatedCount}.`,
+      ipAddress: getRequestIp(req)
+    });
+
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
 exports.create = async (req, res) => {
   const materialName = String(req.body.materialName || "").trim();
   const unit = String(req.body.unit || "").trim();
@@ -986,11 +1153,57 @@ exports.update = async (req, res) => {
   return res.json(updated);
 };
 
+exports.removeManualCatalog = async (req, res) => {
+  const connection = await pool.getConnection();
+  let rows = [];
+  let detachedTemplateItemCount = 0;
+
+  try {
+    await connection.beginTransaction();
+
+    [rows] = await connection.query(
+      "SELECT * FROM material_prices WHERE active_supplier_id IS NULL"
+    );
+
+    if (rows.length) {
+      const materialIds = rows.map((row) => row.id);
+      const [detachResult] = await connection.query(
+        "UPDATE template_items SET catalog_material_id=NULL WHERE catalog_material_id IN (?)",
+        [materialIds]
+      );
+      detachedTemplateItemCount = Number(detachResult.affectedRows || 0);
+
+      await connection.query("DELETE FROM material_prices WHERE id IN (?)", [materialIds]);
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  if (rows.length) {
+    await safeLogAudit({
+      userId: req.user.id,
+      actorName: req.user.name,
+      module: "MATERIALS",
+      action: "MANUAL_CATALOG_DELETED",
+      details: `${rows.length} manual catalog material${rows.length === 1 ? "" : "s"} deleted. Detached ${detachedTemplateItemCount} template item${detachedTemplateItemCount === 1 ? "" : "s"}.`,
+      ipAddress: getRequestIp(req)
+    });
+  }
+
+  return res.json({ success: true, deletedCount: rows.length, detachedTemplateItemCount });
+};
+
 exports.remove = async (req, res) => {
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ message: "Invalid id" });
 
   const [rows] = await pool.query("SELECT * FROM material_prices WHERE id=? LIMIT 1", [id]);
+  await pool.query("UPDATE template_items SET catalog_material_id=NULL WHERE catalog_material_id=?", [id]);
   await pool.query("DELETE FROM material_prices WHERE id=?", [id]);
 
   if (rows.length) {

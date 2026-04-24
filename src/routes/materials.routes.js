@@ -52,6 +52,7 @@ router.get("/", auth, requireModule("materials", "quotes"), c.list);
 router.get("/suppliers", auth, requireModule("materials"), c.listSuppliers);
 router.post("/suppliers", auth, requireModule("materials"), c.createSupplier);
 router.put("/suppliers/:id", auth, requireModule("materials"), c.updateSupplier);
+router.delete("/suppliers/:id", auth, requireModule("materials"), c.removeSupplier);
 router.get("/price-lists", auth, requireModule("materials"), c.listPriceLists);
 router.get("/comparison", auth, requireModule("materials"), c.listComparison);
 router.post(
@@ -61,9 +62,11 @@ router.post(
   uploadPriceList,
   c.importSupplierPriceList
 );
+router.post("/sync-template-catalog", auth, requireModule("materials"), c.syncTemplateCatalogLinks);
 router.post("/:id/select-supplier-price", auth, requireModule("materials"), c.selectSupplierPrice);
 router.post("/", auth, requireModule("materials"), c.create);
 router.put("/:id", auth, requireModule("materials"), c.update);
+router.delete("/manual-catalog", auth, requireModule("materials"), c.removeManualCatalog);
 router.delete("/:id", auth, requireModule("materials"), c.remove);
 
 module.exports = router;
