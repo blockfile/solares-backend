@@ -1199,6 +1199,10 @@ exports.removeManualCatalog = async (req, res) => {
 };
 
 exports.remove = async (req, res) => {
+  if (String(req.params.id || "").toLowerCase() === "manual-catalog") {
+    return exports.removeManualCatalog(req, res);
+  }
+
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ message: "Invalid id" });
 

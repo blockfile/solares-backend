@@ -55,6 +55,8 @@ router.put("/suppliers/:id", auth, requireModule("materials"), c.updateSupplier)
 router.delete("/suppliers/:id", auth, requireModule("materials"), c.removeSupplier);
 router.get("/price-lists", auth, requireModule("materials"), c.listPriceLists);
 router.get("/comparison", auth, requireModule("materials"), c.listComparison);
+router.delete("/bulk/manual-catalog", auth, requireModule("materials"), c.removeManualCatalog);
+router.delete("/catalog/manual", auth, requireModule("materials"), c.removeManualCatalog);
 router.post(
   "/import-price-list",
   auth,
