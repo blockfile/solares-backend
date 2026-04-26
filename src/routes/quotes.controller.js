@@ -71,6 +71,14 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function normalizeVatMode(value) {
+  return String(value || "").trim().toLowerCase() === "excl" ? "excl" : "incl";
+}
+
+function vatModeLabel(vatMode) {
+  return vatMode === "incl" ? "VAT included" : "VAT excluded";
+}
+
 function parsePanelWatt(description, fallback = 0) {
   const text = String(description || "");
   const m = text.match(/(\d{3,4})\s*w/i);
@@ -585,8 +593,9 @@ async function loadQuoteForExport(quoteId) {
 exports.exportCustomerExcel = async (req, res) => {
   const payload = await loadQuoteForExport(req.params.id);
   if (!payload) return res.status(404).json({ message: "Quote not found" });
+  const vatMode = normalizeVatMode(req.query.vatMode);
 
-  const buffer = await buildCustomerQuotationExcel(payload);
+  const buffer = await buildCustomerQuotationExcel({ ...payload, vatMode });
   const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
@@ -594,7 +603,7 @@ exports.exportCustomerExcel = async (req, res) => {
     actorName: req.user.name,
     module: "QUOTES",
     action: "QUOTE_CUSTOMER_EXCEL_EXPORTED",
-    details: `${payload.quote.quote_ref} exported as customer Excel.`,
+    details: `${payload.quote.quote_ref} exported as customer Excel (${vatModeLabel(vatMode)}).`,
     ipAddress: getRequestIp(req)
   });
 
@@ -606,8 +615,9 @@ exports.exportCustomerExcel = async (req, res) => {
 exports.exportCustomerPdf = async (req, res) => {
   const payload = await loadQuoteForExport(req.params.id);
   if (!payload) return res.status(404).json({ message: "Quote not found" });
+  const vatMode = normalizeVatMode(req.query.vatMode);
 
-  const buffer = await buildCustomerQuotationPdf(payload);
+  const buffer = await buildCustomerQuotationPdf({ ...payload, vatMode });
   const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
@@ -615,7 +625,7 @@ exports.exportCustomerPdf = async (req, res) => {
     actorName: req.user.name,
     module: "QUOTES",
     action: "QUOTE_CUSTOMER_PDF_EXPORTED",
-    details: `${payload.quote.quote_ref} exported as customer PDF.`,
+    details: `${payload.quote.quote_ref} exported as customer PDF (${vatModeLabel(vatMode)}).`,
     ipAddress: getRequestIp(req)
   });
 
@@ -627,8 +637,9 @@ exports.exportCustomerPdf = async (req, res) => {
 exports.exportCompanyExcel = async (req, res) => {
   const payload = await loadQuoteForExport(req.params.id);
   if (!payload) return res.status(404).json({ message: "Quote not found" });
+  const vatMode = normalizeVatMode(req.query.vatMode);
 
-  const buffer = await buildCompanyQuotationExcel(payload);
+  const buffer = await buildCompanyQuotationExcel({ ...payload, vatMode });
   const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
@@ -636,7 +647,7 @@ exports.exportCompanyExcel = async (req, res) => {
     actorName: req.user.name,
     module: "QUOTES",
     action: "QUOTE_COMPANY_EXCEL_EXPORTED",
-    details: `${payload.quote.quote_ref} exported as company Excel.`,
+    details: `${payload.quote.quote_ref} exported as company Excel (${vatModeLabel(vatMode)}).`,
     ipAddress: getRequestIp(req)
   });
 
@@ -648,8 +659,9 @@ exports.exportCompanyExcel = async (req, res) => {
 exports.exportQuoteExcel = async (req, res) => {
   const payload = await loadQuoteForExport(req.params.id);
   if (!payload) return res.status(404).json({ message: "Quote not found" });
+  const vatMode = normalizeVatMode(req.query.vatMode);
 
-  const buffer = await buildCustomerQuotationExcel(payload);
+  const buffer = await buildCustomerQuotationExcel({ ...payload, vatMode });
   const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
@@ -657,7 +669,7 @@ exports.exportQuoteExcel = async (req, res) => {
     actorName: req.user.name,
     module: "QUOTES",
     action: "QUOTE_EXPORTED",
-    details: `${payload.quote.quote_ref} exported as default Excel.`,
+    details: `${payload.quote.quote_ref} exported as default Excel (${vatModeLabel(vatMode)}).`,
     ipAddress: getRequestIp(req)
   });
 

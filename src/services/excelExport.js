@@ -53,6 +53,24 @@ function roundPeso(n) {
   return Math.round(Number(n || 0));
 }
 
+const EXPORT_VAT_RATE = 0.12;
+
+function normalizeVatMode(value) {
+  return String(value || "").trim().toLowerCase() === "excl" ? "excl" : "incl";
+}
+
+function isVatEligibleExportItem(row) {
+  if (Number(row?.is_installation) === 1) return false;
+  return Number(row?.catalog_material_id || 0) > 0;
+}
+
+function applyVatModeToAmount(amount, row, vatMode = "incl") {
+  const numericAmount = Number(amount || 0);
+  if (normalizeVatMode(vatMode) !== "incl") return numericAmount;
+  if (!isVatEligibleExportItem(row)) return numericAmount;
+  return numericAmount * (1 + EXPORT_VAT_RATE);
+}
+
 function isBatteryDescription(description) {
   const text = normalizeText(description);
   return (
@@ -229,10 +247,10 @@ function resolveTechnicalSpecs(groups) {
   };
 }
 
-function computeLineFromStoredTotals(rows, { description, qty, unit }) {
+function computeLineFromStoredTotals(rows, { description, qty, unit, vatMode = "incl" }) {
   if (!rows.length) return null;
   const lineTotal = roundPeso(
-    rows.reduce((sum, row) => sum + Number(row.line_total || 0), 0)
+    rows.reduce((sum, row) => sum + applyVatModeToAmount(row.line_total || 0, row, vatMode), 0)
   );
   const parsedQty = Number(qty || 0);
   const unitPrice = parsedQty > 0 ? lineTotal / parsedQty : lineTotal;
@@ -245,10 +263,11 @@ function computeLineFromStoredTotals(rows, { description, qty, unit }) {
   };
 }
 
-function computeLineFromBaseWithMarkup(rows, { description, qty, unit, markupRate }) {
+function computeLineFromBaseWithMarkup(rows, { description, qty, unit, markupRate, vatMode = "incl" }) {
   if (!rows.length) return null;
   const baseSubtotal = rows.reduce(
-    (sum, row) => sum + Number(row.base_price || 0) * Number(row.qty || 0),
+    (sum, row) =>
+      sum + applyVatModeToAmount(row.base_price || 0, row, vatMode) * Number(row.qty || 0),
     0
   );
   const lineTotal = roundPeso(baseSubtotal * (1 + Number(markupRate || 0)));
@@ -268,7 +287,8 @@ function resolveMaterialMarkupRate(quote) {
   return Number.isFinite(rate) && rate >= 0 ? rate : DEFAULT_MATERIAL_MARKUP_RATE;
 }
 
-function summarizeForExport(quote, items) {
+function summarizeForExport(quote, items, { vatMode = "incl" } = {}) {
+  const effectiveVatMode = normalizeVatMode(vatMode);
   const groups = groupQuoteItems(items);
   const { installationTotal, inverterItems, panelItems, batteryItems, mountingItems, safetyItems } = groups;
   const specs = resolveTechnicalSpecs(groups);
@@ -283,21 +303,24 @@ function summarizeForExport(quote, items) {
   const inverterLine = computeLineFromStoredTotals(inverterItems, {
     description: specs.inverter || inverterItems[0]?.description || "Inverter",
     qty: inverterQty,
-    unit: inverterItems[0]?.unit || "PCS"
+    unit: inverterItems[0]?.unit || "PCS",
+    vatMode: effectiveVatMode
   });
   if (inverterLine) lines.push(inverterLine);
 
   const panelLine = computeLineFromStoredTotals(panelItems, {
     description: specs.panel || panelItems[0]?.description || "Solar Panel",
     qty: panelQty,
-    unit: panelItems[0]?.unit || "PCS"
+    unit: panelItems[0]?.unit || "PCS",
+    vatMode: effectiveVatMode
   });
   if (panelLine) lines.push(panelLine);
 
   const batteryLine = computeLineFromStoredTotals(batteryItems, {
     description: specs.battery || batteryItems[0]?.description || "Battery",
     qty: batteryQty,
-    unit: batteryItems[0]?.unit || "PCS"
+    unit: batteryItems[0]?.unit || "PCS",
+    vatMode: effectiveVatMode
   });
   if (batteryLine) lines.push(batteryLine);
 
@@ -305,7 +328,8 @@ function summarizeForExport(quote, items) {
     description: "Complete Safety Breakers/SPD",
     qty: 1,
     unit: "SET",
-    markupRate: materialMarkupRate
+    markupRate: materialMarkupRate,
+    vatMode: effectiveVatMode
   });
   if (safetyLine && safetyLine.lineTotal > 0) lines.push(safetyLine);
 
@@ -313,14 +337,22 @@ function summarizeForExport(quote, items) {
     description: "Complete Mounting Fixtures",
     qty: 1,
     unit: "SET",
-    markupRate: materialMarkupRate
+    markupRate: materialMarkupRate,
+    vatMode: effectiveVatMode
   });
   if (mountingLine && mountingLine.lineTotal > 0) lines.push(mountingLine);
 
   const displayedMaterialTotal = roundPeso(lines.reduce((sum, line) => sum + Number(line.lineTotal || 0), 0));
-  const preDiscountTotal = Number.isFinite(Number(quote?.subtotal)) && Number(quote.subtotal) > 0
-    ? roundPeso(quote.subtotal)
-    : Number.isFinite(Number(quote?.total)) ? roundPeso(quote.total) : null;
+  const adjustedSubtotalFromRows = roundPeso(
+    (items || []).reduce((sum, row) => sum + applyVatModeToAmount(row.line_total || 0, row, effectiveVatMode), 0)
+  );
+  const preDiscountTotal = adjustedSubtotalFromRows > 0
+    ? adjustedSubtotalFromRows
+    : Number.isFinite(Number(quote?.subtotal)) && Number(quote.subtotal) > 0
+      ? roundPeso(quote.subtotal)
+      : Number.isFinite(Number(quote?.total))
+        ? roundPeso(quote.total)
+        : null;
   const totalTarget = preDiscountTotal != null
     ? preDiscountTotal
     : displayedMaterialTotal + installationTotal;
@@ -339,10 +371,13 @@ function summarizeForExport(quote, items) {
   return lines.map((line, idx) => ({ ...line, itemNo: idx + 1 }));
 }
 
-function computeLineFromBase(rows, { description, qty, unit }) {
+function computeLineFromBase(rows, { description, qty, unit, vatMode = "incl" }) {
   if (!rows.length) return null;
   const lineTotal = roundPeso(
-    rows.reduce((sum, row) => sum + Number(row.base_price || 0) * Number(row.qty || 0), 0)
+    rows.reduce(
+      (sum, row) => sum + applyVatModeToAmount(row.base_price || 0, row, vatMode) * Number(row.qty || 0),
+      0
+    )
   );
   const parsedQty = Number(qty || 0);
   const unitPrice = parsedQty > 0 ? lineTotal / parsedQty : lineTotal;
@@ -355,7 +390,8 @@ function computeLineFromBase(rows, { description, qty, unit }) {
   };
 }
 
-function summarizeForCompany(items) {
+function summarizeForCompany(items, { vatMode = "incl" } = {}) {
+  const effectiveVatMode = normalizeVatMode(vatMode);
   const groups = groupQuoteItems(items);
   const { inverterItems, panelItems, batteryItems, mountingItems, safetyItems } = groups;
   const specs = resolveTechnicalSpecs(groups);
@@ -369,35 +405,40 @@ function summarizeForCompany(items) {
   const inverterLine = computeLineFromBase(inverterItems, {
     description: specs.inverter || inverterItems[0]?.description || "Inverter",
     qty: inverterQty,
-    unit: inverterItems[0]?.unit || "PCS"
+    unit: inverterItems[0]?.unit || "PCS",
+    vatMode: effectiveVatMode
   });
   if (inverterLine) lines.push(inverterLine);
 
   const panelLine = computeLineFromBase(panelItems, {
     description: specs.panel || panelItems[0]?.description || "Solar Panel",
     qty: panelQty,
-    unit: panelItems[0]?.unit || "PCS"
+    unit: panelItems[0]?.unit || "PCS",
+    vatMode: effectiveVatMode
   });
   if (panelLine) lines.push(panelLine);
 
   const batteryLine = computeLineFromBase(batteryItems, {
     description: specs.battery || batteryItems[0]?.description || "Battery",
     qty: batteryQty,
-    unit: batteryItems[0]?.unit || "PCS"
+    unit: batteryItems[0]?.unit || "PCS",
+    vatMode: effectiveVatMode
   });
   if (batteryLine) lines.push(batteryLine);
 
   const safetyLine = computeLineFromBase(safetyItems, {
     description: "Complete Safety Breakers/SPD",
     qty: 1,
-    unit: "SET"
+    unit: "SET",
+    vatMode: effectiveVatMode
   });
   if (safetyLine && safetyLine.lineTotal > 0) lines.push(safetyLine);
 
   const mountingLine = computeLineFromBase(mountingItems, {
     description: "Complete Mounting Fixtures",
     qty: 1,
-    unit: "SET"
+    unit: "SET",
+    vatMode: effectiveVatMode
   });
   if (mountingLine && mountingLine.lineTotal > 0) lines.push(mountingLine);
 
@@ -483,7 +524,8 @@ function populateTechnicalSpecifications(ws, items) {
   if (rowMap.battery) ws.getCell(`C${rowMap.battery}`).value = specs.battery || "";
 }
 
-async function buildFromTemplate({ quote, items }) {
+async function buildFromTemplate({ quote, items, vatMode = "incl" }) {
+  const effectiveVatMode = normalizeVatMode(vatMode);
   const templatePath =
     process.env.QUOTE_TEMPLATE_PATH ||
     path.join(__dirname, "../../templates/quotation-template.xlsx");
@@ -505,7 +547,7 @@ async function buildFromTemplate({ quote, items }) {
 
   const itemStartRow = 14;
   let totalRow = findRowContains(ws, "total price in philippine peso", 14, 300) || 20;
-  const exportItems = summarizeForExport(quote, items);
+  const exportItems = summarizeForExport(quote, items, { vatMode: effectiveVatMode });
   const templateSlots = Math.max(0, totalRow - itemStartRow);
 
   const itemCellStyles = Array.from({ length: 7 }, (_, i) =>
@@ -641,7 +683,8 @@ async function buildFromTemplate({ quote, items }) {
   return buffer;
 }
 
-async function buildBasic({ quote, items }) {
+async function buildBasic({ quote, items, vatMode = "incl" }) {
+  const effectiveVatMode = normalizeVatMode(vatMode);
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Quotation");
 
@@ -656,7 +699,7 @@ async function buildBasic({ quote, items }) {
   ws.getCell("E5").value = String(quote.valid_until);
 
   ws.getRow(7).values = ["ITEM", "ITEM", "QTY", "U.P PESO", "T.P PESO"];
-  const exportItems = summarizeForExport(quote, items);
+  const exportItems = summarizeForExport(quote, items, { vatMode: effectiveVatMode });
 
   let r = 8;
   for (const it of exportItems) {
@@ -684,7 +727,8 @@ async function buildBasic({ quote, items }) {
   return wb.xlsx.writeBuffer();
 }
 
-async function buildCompanyBasic({ quote, items }) {
+async function buildCompanyBasic({ quote, items, vatMode = "incl" }) {
+  const effectiveVatMode = normalizeVatMode(vatMode);
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Company Quotation");
 
@@ -710,7 +754,7 @@ async function buildCompanyBasic({ quote, items }) {
   ws.getCell("D4").value = "Valid Until";
   ws.getCell("E4").value = formatDateForDoc(quote.valid_until);
 
-  const lines = summarizeForCompany(items);
+  const lines = summarizeForCompany(items, { vatMode: effectiveVatMode });
   let row = 7;
   ws.getRow(row).values = ["ITEM", "ITEM", "QTY", "U.P. PHP", "T.P. PHP"];
   ws.getRow(row).font = { bold: true };
@@ -767,8 +811,9 @@ function parseDiscountItems(quote) {
   return [];
 }
 
-async function buildCustomerPdf({ quote, items }) {
-  const lines = summarizeForExport(quote, items);
+async function buildCustomerPdf({ quote, items, vatMode = "incl" }) {
+  const effectiveVatMode = normalizeVatMode(vatMode);
+  const lines = summarizeForExport(quote, items, { vatMode: effectiveVatMode });
   const subtotal = roundPeso(lines.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0));
   const discountItems = parseDiscountItems(quote);
   const discountAmount = discountItems.reduce((s, d) => s + Number(d.amount || 0), 0);
@@ -846,24 +891,27 @@ async function buildCustomerPdf({ quote, items }) {
   });
 }
 
-async function buildCustomerQuotationExcel({ quote, items }) {
+async function buildCustomerQuotationExcel({ quote, items, vatMode = "incl" }) {
+  const effectiveVatMode = normalizeVatMode(vatMode);
   const templatePath =
     process.env.QUOTE_TEMPLATE_PATH ||
     path.join(__dirname, "../../templates/quotation-template.xlsx");
 
   if (fs.existsSync(templatePath)) {
-    return buildFromTemplate({ quote, items });
+    return buildFromTemplate({ quote, items, vatMode: effectiveVatMode });
   }
 
-  return buildBasic({ quote, items });
+  return buildBasic({ quote, items, vatMode: effectiveVatMode });
 }
 
-async function buildCustomerQuotationPdf({ quote, items }) {
-  return buildCustomerPdf({ quote, items });
+async function buildCustomerQuotationPdf({ quote, items, vatMode = "incl" }) {
+  const effectiveVatMode = normalizeVatMode(vatMode);
+  return buildCustomerPdf({ quote, items, vatMode: effectiveVatMode });
 }
 
-async function buildCompanyQuotationExcel({ quote, items }) {
-  return buildCompanyBasic({ quote, items });
+async function buildCompanyQuotationExcel({ quote, items, vatMode = "incl" }) {
+  const effectiveVatMode = normalizeVatMode(vatMode);
+  return buildCompanyBasic({ quote, items, vatMode: effectiveVatMode });
 }
 
 module.exports = {

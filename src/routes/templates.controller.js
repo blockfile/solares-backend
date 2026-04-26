@@ -9,6 +9,36 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+const TEMPLATE_VAT_RATE = 0.12;
+
+function normalizeVatMode(value) {
+  return String(value || "").trim().toLowerCase() === "excl" ? "excl" : "incl";
+}
+
+function toVatInclusivePrice(value) {
+  const base = Math.max(0, toNumber(value, 0));
+  return base * (1 + TEMPLATE_VAT_RATE);
+}
+
+function resolveExportUnitPrice(item, vatMode = "incl") {
+  const catalogMaterialId = Number(item?.catalog_material_id || 0);
+  const catalogPriceApplied = Number(item?.catalog_price_applied || 0) === 1;
+  const currentPrice = Math.max(0, toNumber(item?.base_price, 0));
+
+  if (vatMode === "incl" && catalogMaterialId > 0 && catalogPriceApplied) {
+    return toVatInclusivePrice(currentPrice);
+  }
+
+  return currentPrice;
+}
+
+function toTemplateExportItem(item, vatMode = "incl") {
+  return {
+    ...item,
+    base_price: resolveExportUnitPrice(item, vatMode)
+  };
+}
+
 const VALID_SECTION_KEYS = new Set([
   "main_system",
   "dc_pv",
@@ -563,6 +593,7 @@ exports.listTemplateItems = async (req, res) => {
 exports.exportTemplateExcel = async (req, res) => {
   const templateId = Number(req.params.id || 0);
   if (!templateId) return res.status(400).json({ message: "Invalid template id" });
+  const vatMode = normalizeVatMode(req.query.vatMode);
 
   const template = await fetchTemplateRow(templateId);
   if (!template) return res.status(404).json({ message: "Template not found" });
@@ -579,12 +610,15 @@ exports.exportTemplateExcel = async (req, res) => {
     getMaterialPriceIndex()
   ]);
 
-  const items = itemRows[0].map((row) => applyCatalogPriceToItem(row, priceIndex));
+  const items = itemRows[0]
+    .map((row) => applyCatalogPriceToItem(row, priceIndex))
+    .map((row) => toTemplateExportItem(row, vatMode));
   const packageScenarios = packageRows[0] || [];
   const buffer = await buildTemplateWorkbook({
     template,
     items,
-    packageScenarios
+    packageScenarios,
+    vatMode
   });
 
   await safeLogAudit({
@@ -592,7 +626,7 @@ exports.exportTemplateExcel = async (req, res) => {
     actorName: req.user.name,
     module: "TEMPLATES",
     action: "TEMPLATE_EXPORTED",
-    details: `${template.name} exported to costing workbook.`,
+    details: `${template.name} exported to costing workbook (${vatMode === "incl" ? "VAT included" : "VAT excluded"}).`,
     ipAddress: getRequestIp(req)
   });
 
@@ -605,6 +639,7 @@ exports.exportTemplateExcel = async (req, res) => {
 exports.exportTemplateExcelBundle = async (req, res) => {
   const templateId = Number(req.params.id || 0);
   if (!templateId) return res.status(400).json({ message: "Invalid template id" });
+  const vatMode = normalizeVatMode(req.query.vatMode);
 
   const selectedTemplate = await fetchTemplateRow(templateId);
   if (!selectedTemplate) return res.status(404).json({ message: "Template not found" });
@@ -657,14 +692,16 @@ exports.exportTemplateExcelBundle = async (req, res) => {
 
       return {
         template,
-        items: itemRows[0].map((row) => applyCatalogPriceToItem(row, priceIndex)),
+        items: itemRows[0]
+          .map((row) => applyCatalogPriceToItem(row, priceIndex))
+          .map((row) => toTemplateExportItem(row, vatMode)),
         packageScenarios: packageRows[0] || [],
         sheetName: stripTemplateBatteryVariant(template.name)
       };
     })
   );
 
-  const buffer = await buildTemplateWorkbookBundle({ templates: bundlePayload });
+  const buffer = await buildTemplateWorkbookBundle({ templates: bundlePayload, vatMode });
   const selectedBatteryAh = parseTemplateBatteryAh(selectedTemplate.name);
   const selectedGroupName =
     selectedBatteryAh != null
@@ -677,7 +714,7 @@ exports.exportTemplateExcelBundle = async (req, res) => {
     actorName: req.user.name,
     module: "TEMPLATES",
     action: "TEMPLATE_BUNDLE_EXPORTED",
-    details: `${selectedTemplate.name} exported as multi-tab workbook with ${formatAuditValue(bundlePayload.length)} related template(s).`,
+    details: `${selectedTemplate.name} exported as multi-tab workbook with ${formatAuditValue(bundlePayload.length)} related template(s) (${vatMode === "incl" ? "VAT included" : "VAT excluded"}).`,
     ipAddress: getRequestIp(req)
   });
 

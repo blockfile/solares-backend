@@ -307,24 +307,50 @@ async function relinkTemplateItemsToCatalog(connection) {
 exports.list = async (req, res) => {
   const q = String(req.query.q || "").trim();
   const category = String(req.query.category || "").trim();
-  const where = [];
-  const params = [];
+  try {
+    const where = [];
+    const params = [];
 
-  if (q) {
-    const like = `%${q}%`;
-    where.push("(material_name LIKE ? OR normalized_name LIKE ?)");
-    params.push(like, like);
+    if (q) {
+      const like = `%${q}%`;
+      where.push("(mp.material_name LIKE ? OR mp.normalized_name LIKE ? OR s.supplier_name LIKE ?)");
+      params.push(like, like, like);
+    }
+
+    if (category) {
+      where.push("mp.category = ?");
+      params.push(category);
+    }
+
+    const sql = `SELECT mp.*, s.supplier_name AS active_supplier_name
+                   FROM material_prices mp
+              LEFT JOIN suppliers s ON s.id = mp.active_supplier_id
+                  ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+               ORDER BY mp.category ASC, mp.subgroup ASC, mp.material_name ASC`;
+    const [rows] = await pool.query(sql, params);
+    return res.json(rows);
+  } catch (error) {
+    if (!isSupplierSchemaError(error)) throw error;
+
+    const where = [];
+    const params = [];
+
+    if (q) {
+      const like = `%${q}%`;
+      where.push("(material_name LIKE ? OR normalized_name LIKE ?)");
+      params.push(like, like);
+    }
+
+    if (category) {
+      where.push("category = ?");
+      params.push(category);
+    }
+
+    const sql = `SELECT * FROM material_prices ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+                 ORDER BY category ASC, subgroup ASC, material_name ASC`;
+    const [rows] = await pool.query(sql, params);
+    return res.json(rows.map((row) => ({ ...row, active_supplier_name: null })));
   }
-
-  if (category) {
-    where.push("category = ?");
-    params.push(category);
-  }
-
-  const sql = `SELECT * FROM material_prices ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-               ORDER BY category ASC, subgroup ASC, material_name ASC`;
-  const [rows] = await pool.query(sql, params);
-  return res.json(rows);
 };
 
 exports.listSuppliers = async (_req, res) => {

@@ -32,6 +32,10 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function normalizeVatMode(value) {
+  return String(value || "").trim().toLowerCase() === "excl" ? "excl" : "incl";
+}
+
 function sanitizeSheetName(value) {
   const text = String(value || "Template Export")
     .replace(/[:\\/?*\[\]]/g, " ")
@@ -159,7 +163,7 @@ function statusCellStyle(fillColor) {
   };
 }
 
-async function buildTemplateWorkbook({ template, items, packageScenarios = [] }) {
+async function buildTemplateWorkbook({ template, items, packageScenarios = [], vatMode = "incl" }) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Codex";
   workbook.company = "SOLARES";
@@ -167,14 +171,21 @@ async function buildTemplateWorkbook({ template, items, packageScenarios = [] })
   workbook.modified = new Date();
   workbook.calcProperties.fullCalcOnLoad = true;
 
-  await addTemplateWorksheet(workbook, { template, items, packageScenarios, sheetName: `${template.name} Costing` });
+  await addTemplateWorksheet(workbook, {
+    template,
+    items,
+    packageScenarios,
+    sheetName: `${template.name} Costing`,
+    vatMode
+  });
   return workbook.xlsx.writeBuffer();
 }
 
 async function addTemplateWorksheet(
   workbook,
-  { template, items, packageScenarios = [], sheetName = null }
+  { template, items, packageScenarios = [], sheetName = null, vatMode = "incl" }
 ) {
+  const effectiveVatMode = normalizeVatMode(vatMode);
   const worksheet = workbook.addWorksheet(makeUniqueSheetName(workbook, sheetName || inferSheetLabel(template.name)), {
     views: [{ state: "frozen", ySplit: 6 }]
   });
@@ -299,8 +310,9 @@ async function addTemplateWorksheet(
   worksheet.getCell("D3").alignment = { horizontal: "right", vertical: "middle" };
 
   worksheet.mergeCells("A4:F4");
-  worksheet.getCell("A4").value =
-    "This export uses the latest resolved material prices and keeps live formulas for totals and revenue analysis.";
+  worksheet.getCell("A4").value = effectiveVatMode === "incl"
+    ? "This export uses the latest resolved material prices (12% VAT included for catalog-linked items) and keeps live formulas for totals and revenue analysis."
+    : "This export uses the latest resolved material prices with VAT excluded and keeps live formulas for totals and revenue analysis.";
   applyCellStyle(worksheet.getCell("A4"), infoStyle);
 
   let row = 6;
@@ -313,7 +325,8 @@ async function addTemplateWorksheet(
     applyCellStyle(worksheet.getCell(`A${row}`), sectionStyle);
     row += 1;
 
-    ["No.", "Description", "Unit", "Qty", "Unit Price", "Total"].forEach((label, index) => {
+    const unitPriceLabel = effectiveVatMode === "incl" ? "Unit Price (VAT Incl.)" : "Unit Price (VAT Excl.)";
+    ["No.", "Description", "Unit", "Qty", unitPriceLabel, "Total"].forEach((label, index) => {
       const cell = worksheet.getCell(row, index + 1);
       cell.value = label;
       applyCellStyle(cell, headerStyle);
@@ -434,7 +447,7 @@ async function addTemplateWorksheet(
   worksheet.getCell(`A${manualRevenueRow + 2}`).font = { italic: true, color: { argb: "FF666666" } };
 }
 
-async function buildTemplateWorkbookBundle({ templates }) {
+async function buildTemplateWorkbookBundle({ templates, vatMode = "incl" }) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Codex";
   workbook.company = "SOLARES";
@@ -443,7 +456,7 @@ async function buildTemplateWorkbookBundle({ templates }) {
   workbook.calcProperties.fullCalcOnLoad = true;
 
   for (const entry of templates) {
-    await addTemplateWorksheet(workbook, entry);
+    await addTemplateWorksheet(workbook, { ...entry, vatMode });
   }
 
   return workbook.xlsx.writeBuffer();
