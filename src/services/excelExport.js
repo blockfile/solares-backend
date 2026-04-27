@@ -269,7 +269,7 @@ function resolveTechnicalSpecs(groups) {
 function computeLineFromStoredTotals(rows, { description, qty, unit }) {
   if (!rows.length) return null;
   const lineTotal = roundPeso(
-    rows.reduce((sum, row) => sum + Number(row.line_total || 0), 0)
+    rows.reduce((sum, row) => sum + Number(row.unit_price || 0) * Number(row.qty || 0), 0)
   );
   const parsedQty = Number(qty || 0);
   const unitPrice = parsedQty > 0 ? lineTotal / parsedQty : lineTotal;
@@ -357,7 +357,7 @@ function summarizeForExport(quote, items) {
     totalTarget = roundPeso(packagePriceTarget);
   } else {
     const storedSubtotal = roundPeso(
-      (items || []).reduce((sum, row) => sum + Number(row.line_total || 0), 0)
+      (items || []).reduce((sum, row) => sum + Number(row.unit_price || 0) * Number(row.qty || 0), 0)
     );
     const preDiscountTotal = storedSubtotal > 0
       ? storedSubtotal

@@ -460,9 +460,9 @@ exports.createQuoteFromTemplate = async (req, res) => {
       subtotal += lineTotal;
 
       await connection.query(
-        `INSERT INTO quote_items(quote_id,item_no,description,unit,qty,base_price,unit_price,line_total,is_installation)
-         VALUES (?,?,?,?,?,?,?,?,0)`,
-        [quoteId, it.item_no, it.description, it.unit, it.qty, it.base_price, unitPrice, lineTotal]
+        `INSERT INTO quote_items(quote_id,item_no,description,unit,qty,base_price,margin_rate,unit_price,line_total,is_installation)
+         VALUES (?,?,?,?,?,?,?,?,?,0)`,
+        [quoteId, it.item_no, it.description, it.unit, it.qty, it.base_price, itemMarginRate, unitPrice, lineTotal]
       );
     }
 
