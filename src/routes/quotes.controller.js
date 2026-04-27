@@ -71,6 +71,11 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function normalizeRate(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 function normalizeVatMode(value) {
   return String(value || "").trim().toLowerCase() === "excl" ? "excl" : "incl";
 }
@@ -143,6 +148,14 @@ function setDownloadFilename(res, filename) {
   );
 }
 
+exports.getPricingConfig = async (_req, res) => {
+  return res.json({
+    materialMarkupRate: DEFAULT_MATERIAL_MARKUP_RATE,
+    installationMarkupRate: DEFAULT_INSTALLATION_MARKUP_RATE,
+    installationRatePerWatt: 9
+  });
+};
+
 exports.listQuotes = async (req, res) => {
   const query = String(req.query.q || "").trim();
   const requestedLimit = Number(req.query.limit || 25);
@@ -207,7 +220,17 @@ exports.listQuotes = async (req, res) => {
 };
 
 exports.createQuoteFromTemplate = async (req, res) => {
-  const { templateId, customerName, quoteDate, validUntil, packagePriceId, discountAmount, discountItems, items: customItems } = req.body;
+  const {
+    templateId,
+    customerName,
+    quoteDate,
+    validUntil,
+    packagePriceId,
+    discountAmount,
+    discountItems,
+    items: customItems,
+    installationMarginRate
+  } = req.body;
   const parsedTemplateId = Number(templateId);
   const parsedPackagePriceId = Number(packagePriceId || 0);
 
@@ -224,6 +247,13 @@ exports.createQuoteFromTemplate = async (req, res) => {
   if (!customerName || !quoteDate || !validUntil) {
     return res.status(400).json({ message: "Missing required fields" });
   }
+
+  const markupRate = DEFAULT_MATERIAL_MARKUP_RATE;
+  const installationMarkupRate = normalizeRate(
+    installationMarginRate,
+    DEFAULT_INSTALLATION_MARKUP_RATE
+  );
+  const installationRatePerWatt = 9;
 
   let templateName = `Template #${parsedTemplateId}`;
   let packageScenarioLabel = null;
@@ -274,6 +304,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
     unit: it.unit || null,
     qty: toNumber(it.qty, 1),
     base_price: toNumber(it.base_price, 0),
+    margin_rate: markupRate,
     catalog_material_id: Number(it.catalog_material_id || 0) || null,
     is_panel_item: it.is_panel_item === 1 ? 1 : 0,
     panel_watt: toNumber(it.panel_watt, 0)
@@ -313,6 +344,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
           unit: unitInput || null,
           qty,
           base_price: basePrice,
+          margin_rate: normalizeRate(input?.marginRate, markupRate),
           catalog_material_id: Number(input?.catalogMaterialId || input?.catalog_material_id || 0) || null,
           is_panel_item: isPanelManual ? 1 : 0,
           panel_watt: isPanelManual ? parsePanelWatt(description, 0) : 0
@@ -337,6 +369,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
         unit: unitInput || null,
         qty,
         base_price: basePrice,
+        margin_rate: normalizeRate(input?.marginRate, markupRate),
         catalog_material_id: Number(input?.catalogMaterialId || input?.catalog_material_id || 0) || null,
         is_panel_item: base.is_panel_item === 1 ? 1 : 0,
         panel_watt:
@@ -361,10 +394,6 @@ exports.createQuoteFromTemplate = async (req, res) => {
   const panelItem = items.find((x) => x.is_panel_item === 1);
   const panelQty = panelItem ? Number(panelItem.qty) : 0;
   const panelWatt = panelItem ? Number(panelItem.panel_watt || 0) : 0;
-
-  const markupRate = DEFAULT_MATERIAL_MARKUP_RATE;
-  const installationMarkupRate = DEFAULT_INSTALLATION_MARKUP_RATE;
-  const installationRatePerWatt = 9;
 
   let subtotal = 0;
   const connection = await pool.getConnection();
@@ -400,7 +429,8 @@ exports.createQuoteFromTemplate = async (req, res) => {
     quoteId = q.insertId;
 
     for (const it of items) {
-      const unitPrice = applyMaterialMarkup(Number(it.base_price), markupRate);
+      const itemMarginRate = normalizeRate(it.margin_rate, markupRate);
+      const unitPrice = applyMaterialMarkup(Number(it.base_price), itemMarginRate);
       const lineTotal = unitPrice * Number(it.qty);
       subtotal += lineTotal;
 

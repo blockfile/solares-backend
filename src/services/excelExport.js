@@ -2,7 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
 const PDFDocument = require("pdfkit");
-const { DEFAULT_MATERIAL_MARKUP_RATE } = require("./pricing");
 
 function cloneStyle(style) {
   return JSON.parse(JSON.stringify(style || {}));
@@ -302,17 +301,11 @@ function computeLineFromBaseWithMarkup(rows, { description, qty, unit, markupRat
   };
 }
 
-function resolveMaterialMarkupRate(quote) {
-  const rate = Number(quote?.markup_rate);
-  return Number.isFinite(rate) && rate >= 0 ? rate : DEFAULT_MATERIAL_MARKUP_RATE;
-}
-
 function summarizeForExport(quote, items, { vatMode = "incl" } = {}) {
   const effectiveVatMode = normalizeVatMode(vatMode);
   const groups = groupQuoteItems(items);
   const { installationTotal, inverterItems, panelItems, batteryItems, mountingItems, safetyItems } = groups;
   const specs = resolveTechnicalSpecs(groups);
-  const materialMarkupRate = resolveMaterialMarkupRate(quote);
 
   const inverterQty = inverterItems.reduce((s, x) => s + Number(x.qty || 0), 0);
   const panelQty = panelItems.reduce((s, x) => s + Number(x.qty || 0), 0);
@@ -344,20 +337,18 @@ function summarizeForExport(quote, items, { vatMode = "incl" } = {}) {
   });
   if (batteryLine) lines.push(batteryLine);
 
-  const safetyLine = computeLineFromBaseWithMarkup(safetyItems, {
+  const safetyLine = computeLineFromStoredTotals(safetyItems, {
     description: "Complete Safety Breakers/SPD",
     qty: 1,
     unit: "SET",
-    markupRate: materialMarkupRate,
     vatMode: effectiveVatMode
   });
   if (safetyLine && safetyLine.lineTotal > 0) lines.push(safetyLine);
 
-  const mountingLine = computeLineFromBaseWithMarkup(mountingItems, {
+  const mountingLine = computeLineFromStoredTotals(mountingItems, {
     description: "Complete Mounting Fixtures",
     qty: 1,
     unit: "SET",
-    markupRate: materialMarkupRate,
     vatMode: effectiveVatMode
   });
   if (mountingLine && mountingLine.lineTotal > 0) lines.push(mountingLine);

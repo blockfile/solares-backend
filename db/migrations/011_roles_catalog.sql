@@ -18,7 +18,7 @@ SELECT
   'admin',
   'Admin',
   'Full access to all SOLARES modules.',
-  '["calendar","quotes","templates","materials","packages","users","roles","audit"]',
+  '["calendar","quotes","templates","materials","packages","margins","users","roles","audit"]',
   'active',
   1
 WHERE NOT EXISTS (

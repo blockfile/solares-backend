@@ -25,6 +25,11 @@ const MODULE_DEFINITIONS = [
     description: "Manage package price presets."
   },
   {
+    key: "margins",
+    label: "Margin Setup",
+    description: "Manage reusable pricing margin templates."
+  },
+  {
     key: "users",
     label: "Users",
     description: "Create users and assign roles."

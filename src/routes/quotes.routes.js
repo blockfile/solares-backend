@@ -5,6 +5,7 @@ const c = require("./quotes.controller");
 
 router.post("/", auth, requireModule("quotes"), c.createQuoteFromTemplate);
 router.get("/", auth, requireModule("quotes"), c.listQuotes);
+router.get("/config", auth, requireModule("quotes"), c.getPricingConfig);
 router.delete("/:id", auth, requireModule("quotes"), c.deleteQuote);
 router.get("/:id", auth, requireModule("quotes"), c.getQuote);
 router.get("/:id/export/customer-excel", auth, requireModule("quotes"), c.exportCustomerExcel);
