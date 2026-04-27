@@ -266,10 +266,10 @@ function resolveTechnicalSpecs(groups) {
   };
 }
 
-function computeLineFromStoredTotals(rows, { description, qty, unit, vatMode = "incl" }) {
+function computeLineFromStoredTotals(rows, { description, qty, unit }) {
   if (!rows.length) return null;
   const lineTotal = roundPeso(
-    rows.reduce((sum, row) => sum + applyVatModeToAmount(row.line_total || 0, row, vatMode), 0)
+    rows.reduce((sum, row) => sum + Number(row.line_total || 0), 0)
   );
   const parsedQty = Number(qty || 0);
   const unitPrice = parsedQty > 0 ? lineTotal / parsedQty : lineTotal;
@@ -301,8 +301,7 @@ function computeLineFromBaseWithMarkup(rows, { description, qty, unit, markupRat
   };
 }
 
-function summarizeForExport(quote, items, { vatMode = "incl" } = {}) {
-  const effectiveVatMode = normalizeVatMode(vatMode);
+function summarizeForExport(quote, items) {
   const groups = groupQuoteItems(items);
   const { installationTotal, inverterItems, panelItems, batteryItems, mountingItems, safetyItems } = groups;
   const specs = resolveTechnicalSpecs(groups);
@@ -316,40 +315,35 @@ function summarizeForExport(quote, items, { vatMode = "incl" } = {}) {
   const inverterLine = computeLineFromStoredTotals(inverterItems, {
     description: specs.inverter || inverterItems[0]?.description || "Inverter",
     qty: inverterQty,
-    unit: inverterItems[0]?.unit || "PCS",
-    vatMode: effectiveVatMode
+    unit: inverterItems[0]?.unit || "PCS"
   });
   if (inverterLine) lines.push(inverterLine);
 
   const panelLine = computeLineFromStoredTotals(panelItems, {
     description: specs.panel || panelItems[0]?.description || "Solar Panel",
     qty: panelQty,
-    unit: panelItems[0]?.unit || "PCS",
-    vatMode: effectiveVatMode
+    unit: panelItems[0]?.unit || "PCS"
   });
   if (panelLine) lines.push(panelLine);
 
   const batteryLine = computeLineFromStoredTotals(batteryItems, {
     description: specs.battery || batteryItems[0]?.description || "Battery",
     qty: batteryQty,
-    unit: batteryItems[0]?.unit || "PCS",
-    vatMode: effectiveVatMode
+    unit: batteryItems[0]?.unit || "PCS"
   });
   if (batteryLine) lines.push(batteryLine);
 
   const safetyLine = computeLineFromStoredTotals(safetyItems, {
     description: "Complete Safety Breakers/SPD",
     qty: 1,
-    unit: "SET",
-    vatMode: effectiveVatMode
+    unit: "SET"
   });
   if (safetyLine && safetyLine.lineTotal > 0) lines.push(safetyLine);
 
   const mountingLine = computeLineFromStoredTotals(mountingItems, {
     description: "Complete Mounting Fixtures",
     qty: 1,
-    unit: "SET",
-    vatMode: effectiveVatMode
+    unit: "SET"
   });
   if (mountingLine && mountingLine.lineTotal > 0) lines.push(mountingLine);
 
@@ -362,11 +356,11 @@ function summarizeForExport(quote, items, { vatMode = "incl" } = {}) {
   if (isFixedPackage) {
     totalTarget = roundPeso(packagePriceTarget);
   } else {
-    const adjustedSubtotalFromRows = roundPeso(
-      (items || []).reduce((sum, row) => sum + applyVatModeToAmount(row.line_total || 0, row, effectiveVatMode), 0)
+    const storedSubtotal = roundPeso(
+      (items || []).reduce((sum, row) => sum + Number(row.line_total || 0), 0)
     );
-    const preDiscountTotal = adjustedSubtotalFromRows > 0
-      ? adjustedSubtotalFromRows
+    const preDiscountTotal = storedSubtotal > 0
+      ? storedSubtotal
       : Number.isFinite(Number(quote?.subtotal)) && Number(quote.subtotal) > 0
         ? roundPeso(quote.subtotal)
         : Number.isFinite(Number(quote?.total))
@@ -391,11 +385,11 @@ function summarizeForExport(quote, items, { vatMode = "incl" } = {}) {
   return lines.map((line, idx) => ({ ...line, itemNo: idx + 1 }));
 }
 
-function computeLineFromBase(rows, { description, qty, unit, vatMode = "incl" }) {
+function computeLineFromBase(rows, { description, qty, unit }) {
   if (!rows.length) return null;
   const lineTotal = roundPeso(
     rows.reduce(
-      (sum, row) => sum + applyVatModeToAmount(row.base_price || 0, row, vatMode) * Number(row.qty || 0),
+      (sum, row) => sum + Number(row.base_price || 0) * Number(row.qty || 0),
       0
     )
   );
@@ -410,8 +404,7 @@ function computeLineFromBase(rows, { description, qty, unit, vatMode = "incl" })
   };
 }
 
-function summarizeForCompany(items, { vatMode = "incl" } = {}) {
-  const effectiveVatMode = normalizeVatMode(vatMode);
+function summarizeForCompany(items) {
   const groups = groupQuoteItems(items);
   const { inverterItems, panelItems, batteryItems, mountingItems, safetyItems } = groups;
   const specs = resolveTechnicalSpecs(groups);
@@ -425,40 +418,35 @@ function summarizeForCompany(items, { vatMode = "incl" } = {}) {
   const inverterLine = computeLineFromBase(inverterItems, {
     description: specs.inverter || inverterItems[0]?.description || "Inverter",
     qty: inverterQty,
-    unit: inverterItems[0]?.unit || "PCS",
-    vatMode: effectiveVatMode
+    unit: inverterItems[0]?.unit || "PCS"
   });
   if (inverterLine) lines.push(inverterLine);
 
   const panelLine = computeLineFromBase(panelItems, {
     description: specs.panel || panelItems[0]?.description || "Solar Panel",
     qty: panelQty,
-    unit: panelItems[0]?.unit || "PCS",
-    vatMode: effectiveVatMode
+    unit: panelItems[0]?.unit || "PCS"
   });
   if (panelLine) lines.push(panelLine);
 
   const batteryLine = computeLineFromBase(batteryItems, {
     description: specs.battery || batteryItems[0]?.description || "Battery",
     qty: batteryQty,
-    unit: batteryItems[0]?.unit || "PCS",
-    vatMode: effectiveVatMode
+    unit: batteryItems[0]?.unit || "PCS"
   });
   if (batteryLine) lines.push(batteryLine);
 
   const safetyLine = computeLineFromBase(safetyItems, {
     description: "Complete Safety Breakers/SPD",
     qty: 1,
-    unit: "SET",
-    vatMode: effectiveVatMode
+    unit: "SET"
   });
   if (safetyLine && safetyLine.lineTotal > 0) lines.push(safetyLine);
 
   const mountingLine = computeLineFromBase(mountingItems, {
     description: "Complete Mounting Fixtures",
     qty: 1,
-    unit: "SET",
-    vatMode: effectiveVatMode
+    unit: "SET"
   });
   if (mountingLine && mountingLine.lineTotal > 0) lines.push(mountingLine);
 
@@ -567,7 +555,7 @@ async function buildFromTemplate({ quote, items, vatMode = "incl" }) {
 
   const itemStartRow = 14;
   let totalRow = findRowContains(ws, "total price in philippine peso", 14, 300) || 20;
-  const exportItems = summarizeForExport(quote, items, { vatMode: effectiveVatMode });
+  const exportItems = summarizeForExport(quote, items);
   const templateSlots = Math.max(0, totalRow - itemStartRow);
 
   const itemCellStyles = Array.from({ length: 7 }, (_, i) =>
@@ -719,7 +707,7 @@ async function buildBasic({ quote, items, vatMode = "incl" }) {
   ws.getCell("E5").value = String(quote.valid_until);
 
   ws.getRow(7).values = ["ITEM", "ITEM", "QTY", "U.P PESO", "T.P PESO"];
-  const exportItems = summarizeForExport(quote, items, { vatMode: effectiveVatMode });
+  const exportItems = summarizeForExport(quote, items);
 
   let r = 8;
   for (const it of exportItems) {
@@ -774,7 +762,7 @@ async function buildCompanyBasic({ quote, items, vatMode = "incl" }) {
   ws.getCell("D4").value = "Valid Until";
   ws.getCell("E4").value = formatDateForDoc(quote.valid_until);
 
-  const lines = summarizeForCompany(items, { vatMode: effectiveVatMode });
+  const lines = summarizeForCompany(items);
   let row = 7;
   ws.getRow(row).values = ["ITEM", "ITEM", "QTY", "U.P. PHP", "T.P. PHP"];
   ws.getRow(row).font = { bold: true };
@@ -831,9 +819,8 @@ function parseDiscountItems(quote) {
   return [];
 }
 
-async function buildCustomerPdf({ quote, items, vatMode = "incl" }) {
-  const effectiveVatMode = normalizeVatMode(vatMode);
-  const lines = summarizeForExport(quote, items, { vatMode: effectiveVatMode });
+async function buildCustomerPdf({ quote, items }) {
+  const lines = summarizeForExport(quote, items);
   const subtotal = roundPeso(lines.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0));
   const discountItems = parseDiscountItems(quote);
   const discountAmount = discountItems.reduce((s, d) => s + Number(d.amount || 0), 0);
