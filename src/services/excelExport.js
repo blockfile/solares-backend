@@ -354,19 +354,28 @@ function summarizeForExport(quote, items, { vatMode = "incl" } = {}) {
   if (mountingLine && mountingLine.lineTotal > 0) lines.push(mountingLine);
 
   const displayedMaterialTotal = roundPeso(lines.reduce((sum, line) => sum + Number(line.lineTotal || 0), 0));
-  const adjustedSubtotalFromRows = roundPeso(
-    (items || []).reduce((sum, row) => sum + applyVatModeToAmount(row.line_total || 0, row, effectiveVatMode), 0)
-  );
-  const preDiscountTotal = adjustedSubtotalFromRows > 0
-    ? adjustedSubtotalFromRows
-    : Number.isFinite(Number(quote?.subtotal)) && Number(quote.subtotal) > 0
-      ? roundPeso(quote.subtotal)
-      : Number.isFinite(Number(quote?.total))
-        ? roundPeso(quote.total)
-        : null;
-  const totalTarget = preDiscountTotal != null
-    ? preDiscountTotal
-    : displayedMaterialTotal + installationTotal;
+
+  const packagePriceTarget = Number(quote?.package_price_target || 0);
+  const isFixedPackage = String(quote?.pricing_mode || "").trim() === "fixed_package" && packagePriceTarget > 0;
+
+  let totalTarget;
+  if (isFixedPackage) {
+    totalTarget = roundPeso(packagePriceTarget);
+  } else {
+    const adjustedSubtotalFromRows = roundPeso(
+      (items || []).reduce((sum, row) => sum + applyVatModeToAmount(row.line_total || 0, row, effectiveVatMode), 0)
+    );
+    const preDiscountTotal = adjustedSubtotalFromRows > 0
+      ? adjustedSubtotalFromRows
+      : Number.isFinite(Number(quote?.subtotal)) && Number(quote.subtotal) > 0
+        ? roundPeso(quote.subtotal)
+        : Number.isFinite(Number(quote?.total))
+          ? roundPeso(quote.total)
+          : null;
+    totalTarget = preDiscountTotal != null
+      ? preDiscountTotal
+      : displayedMaterialTotal + installationTotal;
+  }
   const reconciledInstallation = Math.max(0, roundPeso(totalTarget - displayedMaterialTotal));
 
   if (installationTotal > 0 || reconciledInstallation > 0) {
