@@ -80,10 +80,6 @@ function normalizeVatMode(value) {
   return String(value || "").trim().toLowerCase() === "excl" ? "excl" : "incl";
 }
 
-function vatModeLabel(vatMode) {
-  return vatMode === "incl" ? "VAT included" : "VAT excluded";
-}
-
 const QUOTE_VAT_RATE = 0.12;
 
 function toVatInclusivePrice(value) {
@@ -236,7 +232,8 @@ exports.createQuoteFromTemplate = async (req, res) => {
     discountAmount,
     discountItems,
     items: customItems,
-    installationMarginRate
+    installationMarginRate,
+    quoteVatMode
   } = req.body;
   const parsedTemplateId = Number(templateId);
   const parsedPackagePriceId = Number(packagePriceId || 0);
@@ -260,6 +257,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
     installationMarginRate,
     DEFAULT_INSTALLATION_MARKUP_RATE
   );
+  const effectiveQuoteVatMode = normalizeVatMode(quoteVatMode);
   const installationRatePerWatt = 9;
 
   let templateName = `Template #${parsedTemplateId}`;
@@ -317,7 +315,11 @@ exports.createQuoteFromTemplate = async (req, res) => {
     panel_watt: toNumber(it.panel_watt, 0)
   }, priceIndex));
   items = items.map((item) => {
-    if (Number(item.catalog_material_id || 0) > 0 && Number(item.catalog_price_applied || 0) === 1) {
+    if (
+      effectiveQuoteVatMode === "incl" &&
+      Number(item.catalog_material_id || 0) > 0 &&
+      Number(item.catalog_price_applied || 0) === 1
+    ) {
       return { ...item, base_price: toVatInclusivePrice(item.base_price) };
     }
     return item;
@@ -401,7 +403,11 @@ exports.createQuoteFromTemplate = async (req, res) => {
     items = custom
       .map((x) => applyCatalogPriceToItem(x, priceIndex))
       .map((item) => {
-        if (Number(item.catalog_material_id || 0) > 0 && Number(item.catalog_price_applied || 0) === 1) {
+        if (
+          effectiveQuoteVatMode === "incl" &&
+          Number(item.catalog_material_id || 0) > 0 &&
+          Number(item.catalog_price_applied || 0) === 1
+        ) {
           return { ...item, base_price: toVatInclusivePrice(item.base_price) };
         }
         return item;
@@ -642,9 +648,8 @@ async function loadQuoteForExport(quoteId) {
 exports.exportCustomerExcel = async (req, res) => {
   const payload = await loadQuoteForExport(req.params.id);
   if (!payload) return res.status(404).json({ message: "Quote not found" });
-  const vatMode = normalizeVatMode(req.query.vatMode);
 
-  const buffer = await buildCustomerQuotationExcel({ ...payload, vatMode });
+  const buffer = await buildCustomerQuotationExcel(payload);
   const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
@@ -652,7 +657,7 @@ exports.exportCustomerExcel = async (req, res) => {
     actorName: req.user.name,
     module: "QUOTES",
     action: "QUOTE_CUSTOMER_EXCEL_EXPORTED",
-    details: `${payload.quote.quote_ref} exported as customer Excel (${vatModeLabel(vatMode)}).`,
+    details: `${payload.quote.quote_ref} exported as customer Excel.`,
     ipAddress: getRequestIp(req)
   });
 
@@ -664,9 +669,8 @@ exports.exportCustomerExcel = async (req, res) => {
 exports.exportCustomerPdf = async (req, res) => {
   const payload = await loadQuoteForExport(req.params.id);
   if (!payload) return res.status(404).json({ message: "Quote not found" });
-  const vatMode = normalizeVatMode(req.query.vatMode);
 
-  const buffer = await buildCustomerQuotationPdf({ ...payload, vatMode });
+  const buffer = await buildCustomerQuotationPdf(payload);
   const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
@@ -674,7 +678,7 @@ exports.exportCustomerPdf = async (req, res) => {
     actorName: req.user.name,
     module: "QUOTES",
     action: "QUOTE_CUSTOMER_PDF_EXPORTED",
-    details: `${payload.quote.quote_ref} exported as customer PDF (${vatModeLabel(vatMode)}).`,
+    details: `${payload.quote.quote_ref} exported as customer PDF.`,
     ipAddress: getRequestIp(req)
   });
 
@@ -686,9 +690,8 @@ exports.exportCustomerPdf = async (req, res) => {
 exports.exportCompanyExcel = async (req, res) => {
   const payload = await loadQuoteForExport(req.params.id);
   if (!payload) return res.status(404).json({ message: "Quote not found" });
-  const vatMode = normalizeVatMode(req.query.vatMode);
 
-  const buffer = await buildCompanyQuotationExcel({ ...payload, vatMode });
+  const buffer = await buildCompanyQuotationExcel(payload);
   const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
@@ -696,7 +699,7 @@ exports.exportCompanyExcel = async (req, res) => {
     actorName: req.user.name,
     module: "QUOTES",
     action: "QUOTE_COMPANY_EXCEL_EXPORTED",
-    details: `${payload.quote.quote_ref} exported as company Excel (${vatModeLabel(vatMode)}).`,
+    details: `${payload.quote.quote_ref} exported as company Excel.`,
     ipAddress: getRequestIp(req)
   });
 
@@ -708,9 +711,8 @@ exports.exportCompanyExcel = async (req, res) => {
 exports.exportQuoteExcel = async (req, res) => {
   const payload = await loadQuoteForExport(req.params.id);
   if (!payload) return res.status(404).json({ message: "Quote not found" });
-  const vatMode = normalizeVatMode(req.query.vatMode);
 
-  const buffer = await buildCustomerQuotationExcel({ ...payload, vatMode });
+  const buffer = await buildCustomerQuotationExcel(payload);
   const baseName = buildQuoteExportBaseName(payload);
 
   await safeLogAudit({
@@ -718,7 +720,7 @@ exports.exportQuoteExcel = async (req, res) => {
     actorName: req.user.name,
     module: "QUOTES",
     action: "QUOTE_EXPORTED",
-    details: `${payload.quote.quote_ref} exported as default Excel (${vatModeLabel(vatMode)}).`,
+    details: `${payload.quote.quote_ref} exported as default Excel.`,
     ipAddress: getRequestIp(req)
   });
 
