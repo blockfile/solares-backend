@@ -528,6 +528,152 @@ exports.getQuote = async (req, res) => {
   res.json({ quote: q[0], items });
 };
 
+/**
+ * PATCH /quotes/:id/items/:itemId
+ *
+ * Inline-edit a single quote item from the Recent Quotes review panel.
+ * Accepts a partial body { description, unit, qty, unitPrice, itemNo }.
+ * Recomputes line_total for the item and refreshes the parent quote subtotal/total.
+ *
+ * Notes:
+ * - We intentionally allow editing the "Complete Installation" line's qty/unit_price too,
+ *   but lock down its description/unit/itemNo on the client side. The server still recomputes
+ *   line_total as qty * unit_price for consistency.
+ * - Discount amount on the parent quote is preserved; total = subtotal - discount.
+ */
+exports.patchQuoteItem = async (req, res) => {
+  const quoteId = Number(req.params.id);
+  const itemId = Number(req.params.itemId);
+
+  if (!quoteId || !itemId) {
+    return res.status(400).json({ message: "Invalid quote or item id" });
+  }
+
+  const body = req.body || {};
+  const updates = {};
+
+  if (Object.prototype.hasOwnProperty.call(body, "description")) {
+    updates.description = String(body.description || "").trim();
+  }
+  if (Object.prototype.hasOwnProperty.call(body, "unit")) {
+    updates.unit = String(body.unit || "").trim() || null;
+  }
+  if (Object.prototype.hasOwnProperty.call(body, "qty")) {
+    updates.qty = Math.max(0, toNumber(body.qty, 0));
+  }
+  if (Object.prototype.hasOwnProperty.call(body, "unitPrice")) {
+    updates.unit_price = Math.max(0, toNumber(body.unitPrice, 0));
+  }
+  if (Object.prototype.hasOwnProperty.call(body, "itemNo")) {
+    updates.item_no = Math.max(0, toNumber(body.itemNo, 0));
+  }
+
+  if (!Object.keys(updates).length) {
+    return res.status(400).json({ message: "No editable fields supplied" });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [quoteRows] = await connection.query(
+      "SELECT id, quote_ref, customer_name, discount_amount FROM quotes WHERE id=? LIMIT 1",
+      [quoteId]
+    );
+    if (!quoteRows.length) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Quote not found" });
+    }
+
+    const [itemRows] = await connection.query(
+      "SELECT * FROM quote_items WHERE id=? AND quote_id=? LIMIT 1",
+      [itemId, quoteId]
+    );
+    if (!itemRows.length) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Quote item not found" });
+    }
+
+    const current = itemRows[0];
+
+    // Resolve final values (fall back to current row when not in patch)
+    const nextDescription = Object.prototype.hasOwnProperty.call(updates, "description")
+      ? updates.description
+      : current.description;
+    const nextUnit = Object.prototype.hasOwnProperty.call(updates, "unit") ? updates.unit : current.unit;
+    const nextQty = Object.prototype.hasOwnProperty.call(updates, "qty")
+      ? updates.qty
+      : toNumber(current.qty, 0);
+    const nextUnitPrice = Object.prototype.hasOwnProperty.call(updates, "unit_price")
+      ? updates.unit_price
+      : toNumber(current.unit_price, 0);
+    const nextItemNo = Object.prototype.hasOwnProperty.call(updates, "item_no")
+      ? updates.item_no
+      : toNumber(current.item_no, 0);
+
+    const nextLineTotal = nextQty * nextUnitPrice;
+
+    await connection.query(
+      `UPDATE quote_items
+       SET description=?, unit=?, qty=?, unit_price=?, line_total=?, item_no=?
+       WHERE id=? AND quote_id=?`,
+      [nextDescription, nextUnit, nextQty, nextUnitPrice, nextLineTotal, nextItemNo, itemId, quoteId]
+    );
+
+    // Recompute parent quote subtotal/total from all items
+    const [sumRows] = await connection.query(
+      "SELECT COALESCE(SUM(line_total), 0) AS subtotal FROM quote_items WHERE quote_id=?",
+      [quoteId]
+    );
+    const newSubtotal = toNumber(sumRows[0]?.subtotal, 0);
+    const discount = toNumber(quoteRows[0].discount_amount, 0);
+    const newTotal = Math.max(0, newSubtotal - discount);
+
+    await connection.query("UPDATE quotes SET subtotal=?, total=? WHERE id=?", [
+      newSubtotal,
+      newTotal,
+      quoteId
+    ]);
+
+    await connection.commit();
+
+    await safeLogAudit({
+      userId: req.user.id,
+      actorName: req.user.name,
+      module: "QUOTES",
+      action: "QUOTE_ITEM_UPDATED",
+      details: `${quoteRows[0].quote_ref} item #${nextItemNo} (${nextDescription || "n/a"}) updated. New line total: ${nextLineTotal}. New quote total: ${newTotal}.`,
+      ipAddress: getRequestIp(req)
+    });
+
+    return res.json({
+      success: true,
+      quoteId,
+      itemId,
+      subtotal: newSubtotal,
+      total: newTotal,
+      item: {
+        id: itemId,
+        quote_id: quoteId,
+        item_no: nextItemNo,
+        description: nextDescription,
+        unit: nextUnit,
+        qty: nextQty,
+        base_price: toNumber(current.base_price, 0),
+        unit_price: nextUnitPrice,
+        line_total: nextLineTotal,
+        is_installation: Number(current.is_installation || 0)
+      }
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error(error);
+    return res.status(500).json({ message: "Failed to update quote item" });
+  } finally {
+    connection.release();
+  }
+};
+
 exports.deleteQuote = async (req, res) => {
   const quoteId = Number(req.params.id);
   if (!quoteId) {
