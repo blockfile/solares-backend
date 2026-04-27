@@ -84,6 +84,13 @@ function vatModeLabel(vatMode) {
   return vatMode === "incl" ? "VAT included" : "VAT excluded";
 }
 
+const QUOTE_VAT_RATE = 0.12;
+
+function toVatInclusivePrice(value) {
+  const base = Math.max(0, toNumber(value, 0));
+  return base * (1 + QUOTE_VAT_RATE);
+}
+
 function parsePanelWatt(description, fallback = 0) {
   const text = String(description || "");
   const m = text.match(/(\d{3,4})\s*w/i);
@@ -309,6 +316,12 @@ exports.createQuoteFromTemplate = async (req, res) => {
     is_panel_item: it.is_panel_item === 1 ? 1 : 0,
     panel_watt: toNumber(it.panel_watt, 0)
   }, priceIndex));
+  items = items.map((item) => {
+    if (Number(item.catalog_material_id || 0) > 0 && Number(item.catalog_price_applied || 0) === 1) {
+      return { ...item, base_price: toVatInclusivePrice(item.base_price) };
+    }
+    return item;
+  });
 
   if (Array.isArray(customItems) && customItems.length) {
     const templateMap = new Map(templateItems.map((it) => [Number(it.id), it]));
@@ -387,6 +400,12 @@ exports.createQuoteFromTemplate = async (req, res) => {
 
     items = custom
       .map((x) => applyCatalogPriceToItem(x, priceIndex))
+      .map((item) => {
+        if (Number(item.catalog_material_id || 0) > 0 && Number(item.catalog_price_applied || 0) === 1) {
+          return { ...item, base_price: toVatInclusivePrice(item.base_price) };
+        }
+        return item;
+      })
       .sort((a, b) => Number(a.item_no) - Number(b.item_no));
   }
 
