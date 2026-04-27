@@ -12,6 +12,10 @@ function normalizeText(value) {
   return String(value || "").toLowerCase();
 }
 
+function resolveCatalogSubgroup(item) {
+  return String(item?.catalog_subgroup || "").trim().toLowerCase();
+}
+
 function cleanDisplayText(value) {
   return String(value || "")
     .replace(/\s+/g, " ")
@@ -103,6 +107,21 @@ function buildItemSearchText(item) {
       .filter((value) => String(value || "").trim())
       .join(" ")
   );
+}
+
+function isPanelItem(item) {
+  if (resolveCatalogSubgroup(item) === "panel") return true;
+  return isPanelDescription(buildItemSearchText(item));
+}
+
+function isBatteryItem(item) {
+  if (resolveCatalogSubgroup(item) === "battery") return true;
+  return isBatteryDescription(buildItemSearchText(item));
+}
+
+function isInverterItem(item) {
+  if (resolveCatalogSubgroup(item) === "inverter") return true;
+  return isInverterDescription(buildItemSearchText(item));
 }
 
 function inferBrandName(subgroup, item) {
@@ -200,7 +219,8 @@ function isMountingDescription(description) {
 function isMountingItem(item) {
   const sectionKey = resolveSectionKey(item.section_key);
   if (sectionKey) return sectionKey === "mounting_structural";
-  return isMountingDescription(item.description);
+  if (resolveCatalogSubgroup(item) === "mounting") return true;
+  return isMountingDescription(buildItemSearchText(item));
 }
 
 function groupQuoteItems(items) {
@@ -211,9 +231,9 @@ function groupQuoteItems(items) {
       .reduce((s, it) => s + Number(it.line_total || 0), 0)
   );
 
-  const inverterItems = nonInstallation.filter((it) => isInverterDescription(it.description));
-  const panelItems = nonInstallation.filter((it) => isPanelDescription(it.description));
-  const batteryItems = nonInstallation.filter((it) => isBatteryDescription(it.description));
+  const inverterItems = nonInstallation.filter((it) => isInverterItem(it));
+  const panelItems = nonInstallation.filter((it) => isPanelItem(it));
+  const batteryItems = nonInstallation.filter((it) => isBatteryItem(it));
 
   const taken = new Set([
     ...inverterItems.map((x) => x.id),
