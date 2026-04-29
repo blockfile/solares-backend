@@ -20,6 +20,11 @@ const MODULE_DEFINITIONS = [
     description: "Manage the material catalog and pricing."
   },
   {
+    key: "inventory",
+    label: "Inventory",
+    description: "Track material stock on hand, receipts, usage, and adjustments."
+  },
+  {
     key: "packages",
     label: "Package Prices",
     description: "Manage package price presets."
