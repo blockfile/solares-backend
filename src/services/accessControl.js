@@ -25,6 +25,11 @@ const MODULE_DEFINITIONS = [
     description: "Track material stock on hand, receipts, usage, and adjustments."
   },
   {
+    key: "payroll",
+    label: "Payroll",
+    description: "Manage employees, pay periods, earnings, deductions, and payroll status."
+  },
+  {
     key: "packages",
     label: "Package Prices",
     description: "Manage package price presets."
