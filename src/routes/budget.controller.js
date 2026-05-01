@@ -422,6 +422,45 @@ exports.deleteTransaction = async (req, res) => {
   return res.json({ success: true });
 };
 
+exports.bulkDeleteTransactions = async (req, res) => {
+  const ids = Array.from(new Set(
+    (Array.isArray(req.body.transactionIds) ? req.body.transactionIds : [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isInteger(id) && id > 0)
+  )).slice(0, 500);
+
+  if (!ids.length) {
+    return res.status(400).json({ message: "Select at least one transaction." });
+  }
+
+  const placeholders = ids.map(() => "?").join(",");
+  const [existingRows] = await pool.query(
+    `SELECT t.id, t.type, t.amount, a.name AS account_name
+       FROM budget_transactions t
+       JOIN budget_accounts a ON a.id = t.account_id
+      WHERE t.id IN (${placeholders})`,
+    ids
+  );
+
+  if (!existingRows.length) {
+    return res.status(404).json({ message: "No matching transactions found." });
+  }
+
+  const [result] = await pool.query(
+    `DELETE FROM budget_transactions WHERE id IN (${placeholders})`,
+    ids
+  );
+
+  await safeLogAudit({
+    userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+    action: "TRANSACTIONS_BULK_DELETED",
+    details: `${result.affectedRows} transaction(s) deleted. IDs: ${existingRows.map((row) => row.id).join(", ")}.`,
+    ipAddress: getRequestIp(req)
+  });
+
+  return res.json({ success: true, deleted: result.affectedRows });
+};
+
 exports.bulkAssignProject = async (req, res) => {
   const ids = Array.from(new Set(
     (Array.isArray(req.body.transactionIds) ? req.body.transactionIds : [])
@@ -679,27 +718,34 @@ exports.importExcel = async (req, res) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
+    const createdTransactions = [];
     for (const row of rows) {
-      await connection.query(
+      const [result] = await connection.query(
         `INSERT INTO budget_transactions (account_id, type, amount, description, transaction_date, project_id, created_by)
          VALUES (?,?,?,?,?,?,?)`,
         [accountId, type, row.amount, row.description, row.transactionDate, projectId, req.user.id]
       );
+      const created = await fetchTransaction(result.insertId, connection);
+      if (created) createdTransactions.push(created);
     }
     await connection.commit();
+
+    await safeLogAudit({
+      userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+      action: "EXCEL_IMPORTED",
+      details: `${createdTransactions.length} transaction(s) imported into "${accountRows[0].name}" from Excel.`,
+      ipAddress: getRequestIp(req)
+    });
+
+    connection.release();
+    return res.status(201).json({
+      imported: createdTransactions.length,
+      rows,
+      transactions: createdTransactions
+    });
   } catch (err) {
     await connection.rollback();
     connection.release();
     throw err;
   }
-  connection.release();
-
-  await safeLogAudit({
-    userId: req.user.id, actorName: req.user.name, module: "BUDGET",
-    action: "EXCEL_IMPORTED",
-    details: `${rows.length} transaction(s) imported into "${accountRows[0].name}" from Excel.`,
-    ipAddress: getRequestIp(req)
-  });
-
-  return res.status(201).json({ imported: rows.length, rows });
 };
