@@ -249,6 +249,7 @@ exports.deleteAccount = async (req, res) => {
 
 exports.listTransactions = async (req, res) => {
   const accountId = Number(req.query.accountId || 0);
+  const projectId = Number(req.query.projectId || 0);
   const type = String(req.query.type || "").toLowerCase();
   const dateFrom = normalizeDate(req.query.dateFrom);
   const dateTo = normalizeDate(req.query.dateTo);
@@ -259,6 +260,7 @@ exports.listTransactions = async (req, res) => {
   const params = [];
 
   if (accountId > 0) { where.push("t.account_id = ?"); params.push(accountId); }
+  if (projectId > 0) { where.push("t.project_id = ?"); params.push(projectId); }
   if (type === "in" || type === "out") { where.push("t.type = ?"); params.push(type); }
   if (dateFrom) { where.push("t.transaction_date >= ?"); params.push(dateFrom); }
   if (dateTo)   { where.push("t.transaction_date <= ?"); params.push(dateTo); }
@@ -420,14 +422,61 @@ exports.deleteTransaction = async (req, res) => {
   return res.json({ success: true });
 };
 
+exports.bulkAssignProject = async (req, res) => {
+  const ids = Array.from(new Set(
+    (Array.isArray(req.body.transactionIds) ? req.body.transactionIds : [])
+      .map((id) => Number(id))
+      .filter((id) => Number.isInteger(id) && id > 0)
+  )).slice(0, 500);
+
+  if (!ids.length) {
+    return res.status(400).json({ message: "Select at least one transaction." });
+  }
+
+  const projectId = Number(req.body.projectId || 0) || null;
+  let projectName = null;
+
+  if (projectId) {
+    const [projectRows] = await pool.query(
+      `SELECT p.id, p.project_name, c.name AS customer_name
+         FROM customer_projects p
+         JOIN customers c ON c.id = p.customer_id
+        WHERE p.id=?
+        LIMIT 1`,
+      [projectId]
+    );
+    if (!projectRows.length) return res.status(404).json({ message: "Project not found" });
+    projectName = `${projectRows[0].customer_name} - ${projectRows[0].project_name}`;
+  }
+
+  const placeholders = ids.map(() => "?").join(",");
+  const [result] = await pool.query(
+    `UPDATE budget_transactions
+        SET project_id=?
+      WHERE id IN (${placeholders})`,
+    [projectId, ...ids]
+  );
+
+  await safeLogAudit({
+    userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+    action: "TRANSACTIONS_PROJECT_ASSIGNED",
+    details: `${result.affectedRows} transaction(s) ${projectId ? `assigned to ${formatAuditValue(projectName)}` : "unassigned from project"}.`,
+    ipAddress: getRequestIp(req)
+  });
+
+  return res.json({ success: true, updated: result.affectedRows, projectId });
+};
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 
 exports.summary = async (req, res) => {
+  const projectId = Number(req.query.projectId || 0);
   const dateFrom = normalizeDate(req.query.dateFrom);
   const dateTo   = normalizeDate(req.query.dateTo);
 
   const where = [];
   const params = [];
+  if (projectId > 0) { where.push("t.project_id = ?"); params.push(projectId); }
   if (dateFrom) { where.push("t.transaction_date >= ?"); params.push(dateFrom); }
   if (dateTo)   { where.push("t.transaction_date <= ?"); params.push(dateTo); }
 
@@ -448,13 +497,35 @@ exports.summary = async (req, res) => {
     "SELECT COUNT(*) AS total FROM budget_accounts WHERE is_active=1"
   );
 
-  return res.json({
+  const payload = {
     totalIn: toNumber(rows[0]?.total_in, 0),
     totalOut: toNumber(rows[0]?.total_out, 0),
     netBalance: toNumber(rows[0]?.net_balance, 0),
     transactionCount: toNumber(rows[0]?.transaction_count, 0),
     activeAccounts: toNumber(accountRows[0]?.total, 0)
-  });
+  };
+
+  if (projectId > 0) {
+    const [projectRows] = await pool.query(
+      `SELECT p.sale_amount, p.project_name, c.name AS customer_name
+         FROM customer_projects p
+         JOIN customers c ON c.id = p.customer_id
+        WHERE p.id=?
+        LIMIT 1`,
+      [projectId]
+    );
+    if (projectRows.length) {
+      const projectBudget = toNumber(projectRows[0].sale_amount, 0);
+      payload.projectId = projectId;
+      payload.projectName = projectRows[0].project_name;
+      payload.customerName = projectRows[0].customer_name;
+      payload.projectBudget = projectBudget;
+      payload.totalIn = projectBudget;
+      payload.netBalance = projectBudget - payload.totalOut;
+    }
+  }
+
+  return res.json(payload);
 };
 
 // ── Excel Import ──────────────────────────────────────────────────────────────

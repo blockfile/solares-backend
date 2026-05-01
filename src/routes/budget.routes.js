@@ -50,6 +50,7 @@ router.put("/accounts/:id",       auth, requireModule("budget"), c.updateAccount
 router.delete("/accounts/:id",    auth, requireModule("budget"), c.deleteAccount);
 
 router.post("/import",            auth, requireModule("budget"), uploadExcel, c.importExcel);
+router.put("/bulk/project",       auth, requireModule("budget"), c.bulkAssignProject);
 
 router.get("/",                   auth, requireModule("budget"), c.listTransactions);
 router.post("/",                  auth, requireModule("budget"), c.createTransaction);
