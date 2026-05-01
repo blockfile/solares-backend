@@ -4,6 +4,15 @@ const pool = require("../config/db");
 const { describeAuditChange, formatAuditValue, getRequestIp, safeLogAudit } = require("../services/audit");
 
 function toNumber(value, fallback = 0) {
+  if (typeof value === "string") {
+    const cleaned = value
+      .trim()
+      .replace(/^(php|php\.|peso|pesos)\s*/i, "")
+      .replace(/[,\s₱$]/g, "");
+    if (!cleaned) return fallback;
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
@@ -81,9 +90,13 @@ async function fetchTransaction(id, connection = pool) {
     `SELECT t.*,
             a.name AS account_name,
             a.type AS account_type,
+            p.project_name,
+            c.name AS customer_name,
             u.name AS created_by_name
        FROM budget_transactions t
        JOIN budget_accounts a ON a.id = t.account_id
+       LEFT JOIN customer_projects p ON p.id = t.project_id
+       LEFT JOIN customers c ON c.id = p.customer_id
        LEFT JOIN users u ON u.id = t.created_by
       WHERE t.id = ?
       LIMIT 1`,
@@ -259,9 +272,13 @@ exports.listTransactions = async (req, res) => {
     `SELECT t.*,
             a.name AS account_name,
             a.type AS account_type,
+            p.project_name,
+            c.name AS customer_name,
             u.name AS created_by_name
        FROM budget_transactions t
        JOIN budget_accounts a ON a.id = t.account_id
+       LEFT JOIN customer_projects p ON p.id = t.project_id
+       LEFT JOIN customers c ON c.id = p.customer_id
        LEFT JOIN users u ON u.id = t.created_by
        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
       ORDER BY t.transaction_date DESC, t.id DESC
@@ -288,15 +305,21 @@ exports.createTransaction = async (req, res) => {
   const description = cleanText(req.body.description, 500);
   const referenceNo = cleanText(req.body.referenceNo, 100);
   const notes = cleanText(req.body.notes, 4000);
+  const projectId = Number(req.body.projectId || 0) || null;
 
   const [accountRows] = await pool.query("SELECT * FROM budget_accounts WHERE id=? LIMIT 1", [accountId]);
   if (!accountRows.length) return res.status(404).json({ message: "Account not found" });
 
+  if (projectId) {
+    const [projectRows] = await pool.query("SELECT id FROM customer_projects WHERE id=? LIMIT 1", [projectId]);
+    if (!projectRows.length) return res.status(404).json({ message: "Project not found" });
+  }
+
   const [result] = await pool.query(
     `INSERT INTO budget_transactions
-       (account_id, type, amount, description, reference_no, transaction_date, notes, created_by)
-     VALUES (?,?,?,?,?,?,?,?)`,
-    [accountId, type, amount, description, referenceNo, transactionDate, notes, req.user.id]
+       (account_id, type, amount, description, reference_no, transaction_date, notes, project_id, created_by)
+     VALUES (?,?,?,?,?,?,?,?,?)`,
+    [accountId, type, amount, description, referenceNo, transactionDate, notes, projectId, req.user.id]
   );
 
   const created = await fetchTransaction(result.insertId);
@@ -342,12 +365,20 @@ exports.updateTransaction = async (req, res) => {
   const accountId = Object.prototype.hasOwnProperty.call(req.body, "accountId")
     ? Number(req.body.accountId || existing.account_id)
     : existing.account_id;
+  const projectId = Object.prototype.hasOwnProperty.call(req.body, "projectId")
+    ? (Number(req.body.projectId || 0) || null)
+    : (Number(existing.project_id || 0) || null);
+
+  if (projectId) {
+    const [projectRows] = await pool.query("SELECT id FROM customer_projects WHERE id=? LIMIT 1", [projectId]);
+    if (!projectRows.length) return res.status(404).json({ message: "Project not found" });
+  }
 
   await pool.query(
     `UPDATE budget_transactions
-        SET account_id=?, type=?, amount=?, description=?, reference_no=?, transaction_date=?, notes=?
+        SET account_id=?, type=?, amount=?, description=?, reference_no=?, transaction_date=?, notes=?, project_id=?
       WHERE id=?`,
-    [accountId, type, amount, description, referenceNo, transactionDate, notes, id]
+    [accountId, type, amount, description, referenceNo, transactionDate, notes, projectId, id]
   );
 
   const updated = await fetchTransaction(id);
@@ -356,7 +387,8 @@ exports.updateTransaction = async (req, res) => {
     describeAuditChange("Amount", existing.amount, updated.amount),
     describeAuditChange("Date", existing.transaction_date, updated.transaction_date),
     describeAuditChange("Description", existing.description, updated.description),
-    describeAuditChange("Reference", existing.reference_no, updated.reference_no)
+    describeAuditChange("Reference", existing.reference_no, updated.reference_no),
+    describeAuditChange("Project", existing.project_name, updated.project_name)
   ].filter(Boolean);
 
   await safeLogAudit({
@@ -472,7 +504,7 @@ function parseRows(sheet) {
   }
 
   // Detect column indices from header row
-  let colNo = -1, colDate = -1, colDesc = -1, colPrice = -1, colQty = -1;
+  let colNo = -1, colDate = -1, colDesc = -1, colPrice = -1, colQty = -1, colSubtotal = -1, colAmount = -1;
 
   if (headerRowIndex >= 0) {
     const hrow = aoa[headerRowIndex].map((c) => String(c || "").toLowerCase().trim());
@@ -480,17 +512,20 @@ function parseRows(sheet) {
       if (/^no\.?$|^#$|^num/.test(h)) colNo = i;
       else if (/date/.test(h)) colDate = i;
       else if (/expense|description|item|particulars/.test(h)) colDesc = i;
-      else if (/^price$|^unit.?price|^amount$/.test(h)) colPrice = i;
+      else if (/^sub\s*total$|^subtotal$|^line\s*total$|^line\s*amount$/.test(h)) colSubtotal = i;
+      else if (/^price$|^unit.?price/.test(h)) colPrice = i;
+      else if (/^amount$|^cost$/.test(h)) colAmount = i;
       else if (/^qty$|^quantity$/.test(h)) colQty = i;
     });
-    // Fallback: if Price not found by name, take the first numeric-looking col after desc
-    if (colPrice === -1 && colDesc >= 0) colPrice = colDesc + 1;
+    if (colPrice === -1 && colAmount >= 0) colPrice = colAmount;
+    // Fallback: if no amount-like column was found, take the first numeric-looking col after desc.
+    if (colSubtotal === -1 && colPrice === -1 && colDesc >= 0) colPrice = colDesc + 1;
   }
 
   // If we couldn't find headers, guess by position (matches the screenshot layout):
-  // Col A=No, B=Date, C=Expenses, D=Price, E=Qty
+  // Col A=No, B=Date, C=Expenses, D=Price, E=Qty, F=Sub Total
   if (colDesc === -1) {
-    colNo = 0; colDate = 1; colDesc = 2; colPrice = 3; colQty = 4;
+    colNo = 0; colDate = 1; colDesc = 2; colPrice = 3; colQty = 4; colSubtotal = 5;
   }
 
   const dataStart = headerRowIndex >= 0 ? headerRowIndex + 1 : 1;
@@ -510,14 +545,15 @@ function parseRows(sheet) {
     if (parsedDate) lastDate = parsedDate;
     const txDate = lastDate || new Date().toISOString().slice(0, 10);
 
+    const subtotal = colSubtotal >= 0 ? toNumber(row[colSubtotal], 0) : 0;
     const rawPrice = colPrice >= 0 ? row[colPrice] : null;
     const price = toNumber(rawPrice, 0);
-    if (price <= 0) continue; // no price → skip
-
     const rawQty = colQty >= 0 ? row[colQty] : null;
     const qty = Math.max(1, toNumber(rawQty, 1));
 
-    const amount = Math.round(price * qty * 100) / 100;
+    const amount = Math.round((subtotal > 0 ? subtotal : price * qty) * 100) / 100;
+    if (amount <= 0) continue; // no amount -> skip
+
     results.push({ description: desc.slice(0, 500), amount, transactionDate: txDate });
   }
 
