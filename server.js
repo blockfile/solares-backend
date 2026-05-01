@@ -16,6 +16,7 @@ const marginTemplateRoutes = require("./src/routes/margin-templates.routes");
 const userRoutes = require("./src/routes/users.routes");
 const roleRoutes = require("./src/routes/roles.routes");
 const auditRoutes = require("./src/routes/audit.routes");
+const budgetRoutes = require("./src/routes/budget.routes");
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use("/api/margin-templates", marginTemplateRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/audit", auditRoutes);
+app.use("/api/budget", budgetRoutes);
 
 app.get("/api/health", (_, res) => res.json({ ok: true }));
 
