@@ -53,6 +53,11 @@ const MODULE_DEFINITIONS = [
     key: "audit",
     label: "Audit",
     description: "Review activity logs and history."
+  },
+  {
+    key: "budget",
+    label: "Budget & Expenses",
+    description: "Track income and expenses, manage accounts, and monitor cash flow."
   }
 ];
 
