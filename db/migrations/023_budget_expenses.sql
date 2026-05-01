@@ -36,3 +36,17 @@ INSERT IGNORE INTO budget_accounts (name, type, description) VALUES
   ('Marketing',         'expense', 'Advertising and promotional expenses'),
   ('Permits & Fees',    'expense', 'Government permits, licenses, and regulatory fees'),
   ('Sales / Revenue',   'income',  'Income from sales and installations');
+
+-- Grant budget module to admin role
+UPDATE roles
+SET modules_json = JSON_ARRAY_APPEND(
+  CASE
+    WHEN JSON_SEARCH(modules_json, 'one', 'budget') IS NULL
+    THEN modules_json
+    ELSE modules_json
+  END,
+  '$',
+  'budget'
+)
+WHERE role_key = 'admin'
+  AND JSON_SEARCH(modules_json, 'one', 'budget') IS NULL;

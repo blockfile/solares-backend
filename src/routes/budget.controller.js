@@ -1,3 +1,5 @@
+const fs = require("fs");
+const XLSX = require("xlsx");
 const pool = require("../config/db");
 const { describeAuditChange, formatAuditValue, getRequestIp, safeLogAudit } = require("../services/audit");
 
@@ -421,4 +423,167 @@ exports.summary = async (req, res) => {
     transactionCount: toNumber(rows[0]?.transaction_count, 0),
     activeAccounts: toNumber(accountRows[0]?.total, 0)
   });
+};
+
+// ── Excel Import ──────────────────────────────────────────────────────────────
+
+function parseExcelDate(value) {
+  if (!value && value !== 0) return null;
+  // Excel serial number
+  if (typeof value === "number") {
+    const date = XLSX.SSF.parse_date_code(value);
+    if (!date) return null;
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.y}-${pad(date.m)}-${pad(date.d)}`;
+  }
+  // String date
+  const text = String(value).trim();
+  if (!text) return null;
+  // Try MM/DD/YYYY or M/D/YYYY
+  const slash = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slash) {
+    const [, m, d, y] = slash;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  // Try YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  const parsed = new Date(text);
+  if (!Number.isNaN(parsed.getTime())) {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
+  }
+  return null;
+}
+
+function parseRows(sheet) {
+  // Convert sheet to array-of-arrays (raw values, no headers)
+  const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
+
+  // Find the header row — look for a row containing "expense" or "description" or "price"
+  let headerRowIndex = -1;
+  for (let i = 0; i < Math.min(aoa.length, 10); i++) {
+    const row = aoa[i];
+    if (!Array.isArray(row)) continue;
+    const joined = row.map((c) => String(c || "").toLowerCase()).join("|");
+    if (joined.includes("expense") || joined.includes("description") || joined.includes("price")) {
+      headerRowIndex = i;
+      break;
+    }
+  }
+
+  // Detect column indices from header row
+  let colNo = -1, colDate = -1, colDesc = -1, colPrice = -1, colQty = -1;
+
+  if (headerRowIndex >= 0) {
+    const hrow = aoa[headerRowIndex].map((c) => String(c || "").toLowerCase().trim());
+    hrow.forEach((h, i) => {
+      if (/^no\.?$|^#$|^num/.test(h)) colNo = i;
+      else if (/date/.test(h)) colDate = i;
+      else if (/expense|description|item|particulars/.test(h)) colDesc = i;
+      else if (/^price$|^unit.?price|^amount$/.test(h)) colPrice = i;
+      else if (/^qty$|^quantity$/.test(h)) colQty = i;
+    });
+    // Fallback: if Price not found by name, take the first numeric-looking col after desc
+    if (colPrice === -1 && colDesc >= 0) colPrice = colDesc + 1;
+  }
+
+  // If we couldn't find headers, guess by position (matches the screenshot layout):
+  // Col A=No, B=Date, C=Expenses, D=Price, E=Qty
+  if (colDesc === -1) {
+    colNo = 0; colDate = 1; colDesc = 2; colPrice = 3; colQty = 4;
+  }
+
+  const dataStart = headerRowIndex >= 0 ? headerRowIndex + 1 : 1;
+  const results = [];
+  let lastDate = null;
+
+  for (let i = dataStart; i < aoa.length; i++) {
+    const row = aoa[i];
+    if (!Array.isArray(row)) continue;
+
+    const rawDesc = colDesc >= 0 ? row[colDesc] : null;
+    const desc = String(rawDesc || "").trim();
+    if (!desc) continue; // blank description row → skip
+
+    const rawDate = colDate >= 0 ? row[colDate] : null;
+    const parsedDate = parseExcelDate(rawDate);
+    if (parsedDate) lastDate = parsedDate;
+    const txDate = lastDate || new Date().toISOString().slice(0, 10);
+
+    const rawPrice = colPrice >= 0 ? row[colPrice] : null;
+    const price = toNumber(rawPrice, 0);
+    if (price <= 0) continue; // no price → skip
+
+    const rawQty = colQty >= 0 ? row[colQty] : null;
+    const qty = Math.max(1, toNumber(rawQty, 1));
+
+    const amount = Math.round(price * qty * 100) / 100;
+    results.push({ description: desc.slice(0, 500), amount, transactionDate: txDate });
+  }
+
+  return results;
+}
+
+exports.importExcel = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "Excel file is required." });
+  }
+
+  const accountId = Number(req.body.accountId || 0);
+  const type = ["in", "out"].includes(req.body.type) ? req.body.type : "out";
+
+  if (!accountId) {
+    if (req.file?.path) fs.unlink(req.file.path, () => {});
+    return res.status(400).json({ message: "accountId is required." });
+  }
+
+  const [accountRows] = await pool.query("SELECT * FROM budget_accounts WHERE id=? LIMIT 1", [accountId]);
+  if (!accountRows.length) {
+    if (req.file?.path) fs.unlink(req.file.path, () => {});
+    return res.status(404).json({ message: "Account not found." });
+  }
+
+  let rows;
+  try {
+    const workbook = XLSX.readFile(req.file.path, { cellDates: false });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    rows = parseRows(sheet);
+  } catch (err) {
+    if (req.file?.path) fs.unlink(req.file.path, () => {});
+    return res.status(400).json({ message: "Could not read the Excel file. Make sure it is a valid .xlsx or .xls file." });
+  } finally {
+    if (req.file?.path) fs.unlink(req.file.path, () => {});
+  }
+
+  if (!rows.length) {
+    return res.status(400).json({ message: "No valid rows were found in the file. Make sure it has Description, Price, and Qty columns." });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    for (const row of rows) {
+      await connection.query(
+        `INSERT INTO budget_transactions (account_id, type, amount, description, transaction_date, created_by)
+         VALUES (?,?,?,?,?,?)`,
+        [accountId, type, row.amount, row.description, row.transactionDate, req.user.id]
+      );
+    }
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    connection.release();
+    throw err;
+  }
+  connection.release();
+
+  await safeLogAudit({
+    userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+    action: "EXCEL_IMPORTED",
+    details: `${rows.length} transaction(s) imported into "${accountRows[0].name}" from Excel.`,
+    ipAddress: getRequestIp(req)
+  });
+
+  return res.status(201).json({ imported: rows.length, rows });
 };
