@@ -531,6 +531,7 @@ exports.importExcel = async (req, res) => {
 
   const accountId = Number(req.body.accountId || 0);
   const type = ["in", "out"].includes(req.body.type) ? req.body.type : "out";
+  const projectId = Number(req.body.projectId || 0) || null;
 
   if (!accountId) {
     if (req.file?.path) fs.unlink(req.file.path, () => {});
@@ -541,6 +542,14 @@ exports.importExcel = async (req, res) => {
   if (!accountRows.length) {
     if (req.file?.path) fs.unlink(req.file.path, () => {});
     return res.status(404).json({ message: "Account not found." });
+  }
+
+  if (projectId) {
+    const [projRows] = await pool.query("SELECT id FROM customer_projects WHERE id=? LIMIT 1", [projectId]);
+    if (!projRows.length) {
+      if (req.file?.path) fs.unlink(req.file.path, () => {});
+      return res.status(404).json({ message: "Project not found." });
+    }
   }
 
   let rows;
@@ -565,9 +574,9 @@ exports.importExcel = async (req, res) => {
     await connection.beginTransaction();
     for (const row of rows) {
       await connection.query(
-        `INSERT INTO budget_transactions (account_id, type, amount, description, transaction_date, created_by)
-         VALUES (?,?,?,?,?,?)`,
-        [accountId, type, row.amount, row.description, row.transactionDate, req.user.id]
+        `INSERT INTO budget_transactions (account_id, type, amount, description, transaction_date, project_id, created_by)
+         VALUES (?,?,?,?,?,?,?)`,
+        [accountId, type, row.amount, row.description, row.transactionDate, projectId, req.user.id]
       );
     }
     await connection.commit();

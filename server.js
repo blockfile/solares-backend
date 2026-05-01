@@ -17,6 +17,7 @@ const userRoutes = require("./src/routes/users.routes");
 const roleRoutes = require("./src/routes/roles.routes");
 const auditRoutes = require("./src/routes/audit.routes");
 const budgetRoutes = require("./src/routes/budget.routes");
+const customerRoutes = require("./src/routes/customers.routes");
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/audit", auditRoutes);
 app.use("/api/budget", budgetRoutes);
+app.use("/api/customers", customerRoutes);
 
 app.get("/api/health", (_, res) => res.json({ ok: true }));
 
