@@ -36,15 +36,26 @@ async function fetchCustomer(id, connection = pool) {
   const [rows] = await connection.query(
     `SELECT c.*,
             u.name AS created_by_name,
-            COUNT(DISTINCT p.id) AS project_count,
-            COALESCE(SUM(p.sale_amount), 0) AS total_sales,
-            COALESCE(SUM(bt.amount), 0) AS total_expenses
+            COALESCE(ps.project_count, 0) AS project_count,
+            COALESCE(ps.total_sales, 0) AS total_sales,
+            COALESCE(es.total_expenses, 0) AS total_expenses
        FROM customers c
        LEFT JOIN users u ON u.id = c.created_by
-       LEFT JOIN customer_projects p ON p.customer_id = c.id
-       LEFT JOIN budget_transactions bt ON bt.project_id = p.id AND bt.type = 'out'
+       LEFT JOIN (
+         SELECT customer_id,
+                COUNT(*) AS project_count,
+                COALESCE(SUM(sale_amount), 0) AS total_sales
+           FROM customer_projects
+          GROUP BY customer_id
+       ) ps ON ps.customer_id = c.id
+       LEFT JOIN (
+         SELECT p.customer_id,
+                COALESCE(SUM(bt.amount), 0) AS total_expenses
+           FROM customer_projects p
+           JOIN budget_transactions bt ON bt.project_id = p.id AND bt.type = 'out'
+          GROUP BY p.customer_id
+       ) es ON es.customer_id = c.id
       WHERE c.id = ?
-      GROUP BY c.id
       LIMIT 1`,
     [id]
   );
@@ -76,15 +87,26 @@ exports.listCustomers = async (req, res) => {
   const [rows] = await pool.query(
     `SELECT c.*,
             u.name AS created_by_name,
-            COUNT(DISTINCT p.id) AS project_count,
-            COALESCE(SUM(p.sale_amount), 0) AS total_sales,
-            COALESCE(SUM(bt.amount), 0) AS total_expenses
+            COALESCE(ps.project_count, 0) AS project_count,
+            COALESCE(ps.total_sales, 0) AS total_sales,
+            COALESCE(es.total_expenses, 0) AS total_expenses
        FROM customers c
        LEFT JOIN users u ON u.id = c.created_by
-       LEFT JOIN customer_projects p ON p.customer_id = c.id
-       LEFT JOIN budget_transactions bt ON bt.project_id = p.id AND bt.type = 'out'
+       LEFT JOIN (
+         SELECT customer_id,
+                COUNT(*) AS project_count,
+                COALESCE(SUM(sale_amount), 0) AS total_sales
+           FROM customer_projects
+          GROUP BY customer_id
+       ) ps ON ps.customer_id = c.id
+       LEFT JOIN (
+         SELECT p.customer_id,
+                COALESCE(SUM(bt.amount), 0) AS total_expenses
+           FROM customer_projects p
+           JOIN budget_transactions bt ON bt.project_id = p.id AND bt.type = 'out'
+          GROUP BY p.customer_id
+       ) es ON es.customer_id = c.id
        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-      GROUP BY c.id
       ORDER BY c.name ASC`,
     params
   );
@@ -302,14 +324,22 @@ exports.listProjectTransactions = async (req, res) => {
 exports.summary = async (_req, res) => {
   const [rows] = await pool.query(
     `SELECT
-       COUNT(DISTINCT c.id) AS total_customers,
-       COUNT(DISTINCT p.id) AS total_projects,
-       COALESCE(SUM(p.sale_amount), 0) AS total_sales,
-       COALESCE(SUM(CASE WHEN bt.type='out' THEN bt.amount ELSE 0 END), 0) AS total_expenses
-     FROM customers c
-     LEFT JOIN customer_projects p ON p.customer_id = c.id
-     LEFT JOIN budget_transactions bt ON bt.project_id = p.id
-     WHERE c.is_active = 1`
+       (SELECT COUNT(*)
+          FROM customers c
+         WHERE c.is_active = 1) AS total_customers,
+       (SELECT COUNT(*)
+          FROM customer_projects p
+          JOIN customers c ON c.id = p.customer_id
+         WHERE c.is_active = 1) AS total_projects,
+       (SELECT COALESCE(SUM(p.sale_amount), 0)
+          FROM customer_projects p
+          JOIN customers c ON c.id = p.customer_id
+         WHERE c.is_active = 1) AS total_sales,
+       (SELECT COALESCE(SUM(bt.amount), 0)
+          FROM budget_transactions bt
+          JOIN customer_projects p ON p.id = bt.project_id
+          JOIN customers c ON c.id = p.customer_id
+         WHERE bt.type='out' AND c.is_active = 1) AS total_expenses`
   );
   const r = rows[0] || {};
   const totalSales = toNumber(r.total_sales, 0);

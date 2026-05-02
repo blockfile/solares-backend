@@ -535,13 +535,17 @@ exports.summary = async (req, res) => {
   const [accountRows] = await pool.query(
     "SELECT COUNT(*) AS total FROM budget_accounts WHERE is_active=1"
   );
+  const [budgetRows] = await pool.query(
+    "SELECT COALESCE(SUM(sale_amount), 0) AS total_budget FROM customer_projects"
+  );
 
   const payload = {
     totalIn: toNumber(rows[0]?.total_in, 0),
     totalOut: toNumber(rows[0]?.total_out, 0),
     netBalance: toNumber(rows[0]?.net_balance, 0),
     transactionCount: toNumber(rows[0]?.transaction_count, 0),
-    activeAccounts: toNumber(accountRows[0]?.total, 0)
+    activeAccounts: toNumber(accountRows[0]?.total, 0),
+    totalBudget: toNumber(budgetRows[0]?.total_budget, 0)
   };
 
   if (projectId > 0) {
@@ -562,6 +566,9 @@ exports.summary = async (req, res) => {
       payload.totalIn = projectBudget;
       payload.netBalance = projectBudget - payload.totalOut;
     }
+  } else {
+    payload.totalIn = payload.totalBudget;
+    payload.netBalance = payload.totalIn - payload.totalOut;
   }
 
   return res.json(payload);
