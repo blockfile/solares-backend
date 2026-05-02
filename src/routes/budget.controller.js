@@ -66,6 +66,40 @@ function serializeTransaction(row) {
   };
 }
 
+let ensureImportTrackingSchemaPromise = null;
+
+async function ensureImportTrackingSchema() {
+  if (!ensureImportTrackingSchemaPromise) {
+    ensureImportTrackingSchemaPromise = (async () => {
+      const [batchCols] = await pool.query("SHOW COLUMNS FROM budget_transactions LIKE 'import_batch_id'");
+      if (!batchCols.length) {
+        await pool.query(
+          "ALTER TABLE budget_transactions ADD COLUMN import_batch_id VARCHAR(64) NULL AFTER project_id"
+        );
+      }
+
+      const [sourceCols] = await pool.query("SHOW COLUMNS FROM budget_transactions LIKE 'import_source_name'");
+      if (!sourceCols.length) {
+        await pool.query(
+          "ALTER TABLE budget_transactions ADD COLUMN import_source_name VARCHAR(255) NULL AFTER import_batch_id"
+        );
+      }
+
+      const [indexRows] = await pool.query("SHOW INDEX FROM budget_transactions WHERE Key_name = 'idx_budget_transactions_import_batch'");
+      if (!indexRows.length) {
+        await pool.query(
+          "ALTER TABLE budget_transactions ADD INDEX idx_budget_transactions_import_batch (import_batch_id)"
+        );
+      }
+    })().catch((error) => {
+      ensureImportTrackingSchemaPromise = null;
+      throw error;
+    });
+  }
+
+  return ensureImportTrackingSchemaPromise;
+}
+
 async function fetchAccount(id, connection = pool) {
   const [rows] = await connection.query(
     `SELECT a.*,
@@ -248,6 +282,8 @@ exports.deleteAccount = async (req, res) => {
 // ── Transactions ──────────────────────────────────────────────────────────────
 
 exports.listTransactions = async (req, res) => {
+  await ensureImportTrackingSchema();
+
   const accountId = Number(req.query.accountId || 0);
   const projectId = Number(req.query.projectId || 0);
   const type = String(req.query.type || "").toLowerCase();
@@ -292,6 +328,8 @@ exports.listTransactions = async (req, res) => {
 };
 
 exports.createTransaction = async (req, res) => {
+  await ensureImportTrackingSchema();
+
   const accountId = Number(req.body.accountId || 0);
   if (!accountId) return res.status(400).json({ message: "accountId is required" });
 
@@ -336,6 +374,8 @@ exports.createTransaction = async (req, res) => {
 };
 
 exports.updateTransaction = async (req, res) => {
+  await ensureImportTrackingSchema();
+
   const id = Number(req.params.id || 0);
   if (!id) return res.status(400).json({ message: "Invalid id" });
 
@@ -404,6 +444,8 @@ exports.updateTransaction = async (req, res) => {
 };
 
 exports.deleteTransaction = async (req, res) => {
+  await ensureImportTrackingSchema();
+
   const id = Number(req.params.id || 0);
   if (!id) return res.status(400).json({ message: "Invalid id" });
 
@@ -423,6 +465,8 @@ exports.deleteTransaction = async (req, res) => {
 };
 
 exports.bulkDeleteTransactions = async (req, res) => {
+  await ensureImportTrackingSchema();
+
   const ids = Array.from(new Set(
     (Array.isArray(req.body.transactionIds) ? req.body.transactionIds : [])
       .map((id) => Number(id))
@@ -462,6 +506,8 @@ exports.bulkDeleteTransactions = async (req, res) => {
 };
 
 exports.bulkAssignProject = async (req, res) => {
+  await ensureImportTrackingSchema();
+
   const ids = Array.from(new Set(
     (Array.isArray(req.body.transactionIds) ? req.body.transactionIds : [])
       .map((id) => Number(id))
@@ -509,6 +555,8 @@ exports.bulkAssignProject = async (req, res) => {
 // ── Summary ───────────────────────────────────────────────────────────────────
 
 exports.summary = async (req, res) => {
+  await ensureImportTrackingSchema();
+
   const projectId = Number(req.query.projectId || 0);
   const dateFrom = normalizeDate(req.query.dateFrom);
   const dateTo   = normalizeDate(req.query.dateTo);
@@ -678,6 +726,8 @@ function parseRows(sheet) {
 }
 
 exports.importExcel = async (req, res) => {
+  await ensureImportTrackingSchema();
+
   if (!req.file) {
     return res.status(400).json({ message: "Excel file is required." });
   }
@@ -706,6 +756,8 @@ exports.importExcel = async (req, res) => {
   }
 
   let rows;
+  const importBatchId = `imp_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const importSourceName = cleanText(req.file.originalname, 255) || req.file.filename || "Imported Excel";
   try {
     const workbook = XLSX.readFile(req.file.path, { cellDates: false });
     const sheetName = workbook.SheetNames[0];
@@ -728,9 +780,10 @@ exports.importExcel = async (req, res) => {
     const createdTransactions = [];
     for (const row of rows) {
       const [result] = await connection.query(
-        `INSERT INTO budget_transactions (account_id, type, amount, description, transaction_date, project_id, created_by)
-         VALUES (?,?,?,?,?,?,?)`,
-        [accountId, type, row.amount, row.description, row.transactionDate, projectId, req.user.id]
+        `INSERT INTO budget_transactions
+           (account_id, type, amount, description, transaction_date, project_id, import_batch_id, import_source_name, created_by)
+         VALUES (?,?,?,?,?,?,?,?,?)`,
+        [accountId, type, row.amount, row.description, row.transactionDate, projectId, importBatchId, importSourceName, req.user.id]
       );
       const created = await fetchTransaction(result.insertId, connection);
       if (created) createdTransactions.push(created);
@@ -746,6 +799,8 @@ exports.importExcel = async (req, res) => {
 
     connection.release();
     return res.status(201).json({
+      importBatchId,
+      importSourceName,
       imported: createdTransactions.length,
       rows,
       transactions: createdTransactions
@@ -755,4 +810,66 @@ exports.importExcel = async (req, res) => {
     connection.release();
     throw err;
   }
+};
+
+exports.listImportBatches = async (_req, res) => {
+  await ensureImportTrackingSchema();
+
+  const [rows] = await pool.query(
+    `SELECT
+       t.import_batch_id AS import_batch_id,
+       MAX(t.import_source_name) AS import_source_name,
+       COUNT(*) AS transaction_count,
+       COALESCE(SUM(t.amount), 0) AS total_amount,
+       MAX(t.transaction_date) AS latest_transaction_date,
+       MAX(t.created_at) AS imported_at
+     FROM budget_transactions t
+     WHERE t.import_batch_id IS NOT NULL
+     GROUP BY t.import_batch_id
+     ORDER BY imported_at DESC, import_batch_id DESC
+     LIMIT 30`
+  );
+
+  return res.json(rows.map((row) => ({
+    import_batch_id: row.import_batch_id,
+    import_source_name: row.import_source_name,
+    transaction_count: toNumber(row.transaction_count, 0),
+    total_amount: formatMoney(row.total_amount),
+    latest_transaction_date: row.latest_transaction_date,
+    imported_at: row.imported_at
+  })));
+};
+
+exports.deleteImportBatch = async (req, res) => {
+  await ensureImportTrackingSchema();
+
+  const batchId = cleanText(req.params.batchId, 64);
+  if (!batchId) return res.status(400).json({ message: "Invalid import batch." });
+
+  const [existingRows] = await pool.query(
+    `SELECT id, import_source_name
+       FROM budget_transactions
+      WHERE import_batch_id = ?`,
+    [batchId]
+  );
+
+  if (!existingRows.length) {
+    return res.status(404).json({ message: "Imported Excel batch not found." });
+  }
+
+  const [result] = await pool.query(
+    "DELETE FROM budget_transactions WHERE import_batch_id = ?",
+    [batchId]
+  );
+
+  await safeLogAudit({
+    userId: req.user.id,
+    actorName: req.user.name,
+    module: "BUDGET",
+    action: "IMPORT_BATCH_DELETED",
+    details: `Imported Excel "${existingRows[0].import_source_name || batchId}" deleted with ${result.affectedRows} transaction(s).`,
+    ipAddress: getRequestIp(req)
+  });
+
+  return res.json({ success: true, deleted: result.affectedRows, importBatchId: batchId });
 };

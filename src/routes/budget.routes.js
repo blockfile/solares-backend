@@ -68,6 +68,8 @@ router.delete("/accounts/:id", auth, requireModule("budget"), c.deleteAccount);
 // Import + Bulk Actions
 // ─────────────────────────────────────────────
 router.post("/import",         auth, requireModule("budget"), uploadExcel, c.importExcel);
+router.get("/import-batches",  auth, requireModule("budget"), c.listImportBatches);
+router.delete("/import-batches/:batchId", auth, requireModule("budget"), c.deleteImportBatch);
 
 // ✅ EXISTING
 router.put("/bulk/project",    auth, requireModule("budget"), c.bulkAssignProject);

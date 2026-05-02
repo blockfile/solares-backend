@@ -206,11 +206,16 @@ function serializeProject(row) {
   if (!row) return null;
   const saleAmount = toNumber(row.sale_amount, 0);
   const totalExpenses = toNumber(row.total_expenses, 0);
+  const totalIncome = toNumber(row.total_income, 0);
+  const balanceDue = Math.max(0, saleAmount - totalIncome);
   return {
     ...row,
     sale_amount: saleAmount,
     total_expenses: totalExpenses,
-    total_income: toNumber(row.total_income, 0),
+    total_income: totalIncome,
+    collected_amount: totalIncome,
+    balance_due: balanceDue,
+    collection_percent: saleAmount > 0 ? Math.min(100, (totalIncome / saleAmount) * 100) : 0,
     transaction_count: toNumber(row.transaction_count, 0),
     margin: saleAmount - totalExpenses
   };
