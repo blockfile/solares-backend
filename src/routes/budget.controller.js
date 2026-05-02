@@ -612,15 +612,14 @@ exports.summary = async (req, res) => {
       payload.projectName = projectRows[0].project_name;
       payload.customerName = projectRows[0].customer_name;
       payload.projectBudget = projectBudget;
-      payload.projectedIncome = projectBudget;
       payload.collectedIncome = collectedIncome;
       payload.balanceDue = Math.max(0, projectBudget - collectedIncome);
       payload.contractMargin = projectBudget - payload.totalOut;
-      payload.totalIn = projectBudget;
       payload.netBalance = collectedIncome - payload.totalOut;
     }
   } else {
-    payload.totalIn = payload.totalBudget;
+    payload.projectedRevenue = payload.totalBudget;
+    // netBalance = actual collected cash minus actual expenses
     payload.netBalance = payload.totalIn - payload.totalOut;
   }
 
