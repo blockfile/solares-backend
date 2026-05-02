@@ -607,12 +607,17 @@ exports.summary = async (req, res) => {
     );
     if (projectRows.length) {
       const projectBudget = toNumber(projectRows[0].sale_amount, 0);
+      const collectedIncome = payload.totalIn;
       payload.projectId = projectId;
       payload.projectName = projectRows[0].project_name;
       payload.customerName = projectRows[0].customer_name;
       payload.projectBudget = projectBudget;
+      payload.projectedIncome = projectBudget;
+      payload.collectedIncome = collectedIncome;
+      payload.balanceDue = Math.max(0, projectBudget - collectedIncome);
+      payload.contractMargin = projectBudget - payload.totalOut;
       payload.totalIn = projectBudget;
-      payload.netBalance = projectBudget - payload.totalOut;
+      payload.netBalance = collectedIncome - payload.totalOut;
     }
   } else {
     payload.totalIn = payload.totalBudget;
