@@ -41,8 +41,26 @@ function normalizeDate(value) {
   return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
 }
 
+function formatSqlDate(value) {
+  if (!value) return null;
+  if (typeof value === "string") {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 function formatMoney(value) {
   return toNumber(value, 0);
+}
+
+function nullableNumber(value) {
+  if (value == null || value === "") return null;
+  const n = toNumber(value, NaN);
+  return Number.isFinite(n) ? n : null;
 }
 
 function serializeAccount(row) {
@@ -62,6 +80,9 @@ function serializeTransaction(row) {
   return {
     ...row,
     amount: formatMoney(row.amount),
+    price: row.price == null ? null : formatMoney(row.price),
+    quantity: row.quantity == null ? null : toNumber(row.quantity, 0),
+    transaction_date: formatSqlDate(row.transaction_date),
     running_balance: row.running_balance != null ? formatMoney(row.running_balance) : null
   };
 }
@@ -82,6 +103,20 @@ async function ensureImportTrackingSchema() {
       if (!sourceCols.length) {
         await pool.query(
           "ALTER TABLE budget_transactions ADD COLUMN import_source_name VARCHAR(255) NULL AFTER import_batch_id"
+        );
+      }
+
+      const [priceCols] = await pool.query("SHOW COLUMNS FROM budget_transactions LIKE 'price'");
+      if (!priceCols.length) {
+        await pool.query(
+          "ALTER TABLE budget_transactions ADD COLUMN price DECIMAL(14,2) NULL AFTER amount"
+        );
+      }
+
+      const [quantityCols] = await pool.query("SHOW COLUMNS FROM budget_transactions LIKE 'quantity'");
+      if (!quantityCols.length) {
+        await pool.query(
+          "ALTER TABLE budget_transactions ADD COLUMN quantity DECIMAL(12,3) NULL AFTER price"
         );
       }
 
@@ -336,7 +371,23 @@ exports.createTransaction = async (req, res) => {
   const type = ["in", "out"].includes(req.body.type) ? req.body.type : null;
   if (!type) return res.status(400).json({ message: "type must be 'in' or 'out'" });
 
-  const amount = toNumber(req.body.amount, 0);
+  const price = Object.prototype.hasOwnProperty.call(req.body, "price")
+    ? nullableNumber(req.body.price)
+    : null;
+  const quantity = Object.prototype.hasOwnProperty.call(req.body, "quantity")
+    ? nullableNumber(req.body.quantity)
+    : Object.prototype.hasOwnProperty.call(req.body, "qty")
+      ? nullableNumber(req.body.qty)
+      : null;
+  if (price != null && price < 0) return res.status(400).json({ message: "price cannot be negative" });
+  if (quantity != null && quantity < 0) return res.status(400).json({ message: "quantity cannot be negative" });
+
+  const computedAmount = price != null && quantity != null && price > 0 && quantity > 0
+    ? Math.round(price * quantity * 100) / 100
+    : 0;
+  const amount = Object.prototype.hasOwnProperty.call(req.body, "amount")
+    ? toNumber(req.body.amount, computedAmount)
+    : computedAmount;
   if (amount <= 0) return res.status(400).json({ message: "amount must be greater than zero" });
 
   const transactionDate = normalizeDate(req.body.transactionDate) || normalizeDate(new Date().toISOString());
@@ -357,9 +408,9 @@ exports.createTransaction = async (req, res) => {
 
   const [result] = await pool.query(
     `INSERT INTO budget_transactions
-       (account_id, type, amount, description, reference_no, transaction_date, notes, project_id, created_by)
-     VALUES (?,?,?,?,?,?,?,?,?)`,
-    [accountId, type, amount, description, referenceNo, transactionDate, notes, projectId, req.user.id]
+       (account_id, type, amount, price, quantity, description, reference_no, transaction_date, notes, project_id, created_by)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+    [accountId, type, amount, price, quantity, description, referenceNo, transactionDate, notes, projectId, req.user.id]
   );
 
   const created = await fetchTransaction(result.insertId);
@@ -389,6 +440,16 @@ exports.updateTransaction = async (req, res) => {
     ? toNumber(req.body.amount, 0)
     : toNumber(existing.amount, 0);
   if (amount <= 0) return res.status(400).json({ message: "amount must be greater than zero" });
+  const price = Object.prototype.hasOwnProperty.call(req.body, "price")
+    ? nullableNumber(req.body.price)
+    : existing.price;
+  const quantity = Object.prototype.hasOwnProperty.call(req.body, "quantity")
+    ? nullableNumber(req.body.quantity)
+    : Object.prototype.hasOwnProperty.call(req.body, "qty")
+      ? nullableNumber(req.body.qty)
+      : existing.quantity;
+  if (price != null && price < 0) return res.status(400).json({ message: "price cannot be negative" });
+  if (quantity != null && quantity < 0) return res.status(400).json({ message: "quantity cannot be negative" });
 
   const transactionDate = Object.prototype.hasOwnProperty.call(req.body, "transactionDate")
     ? normalizeDate(req.body.transactionDate)
@@ -418,15 +479,17 @@ exports.updateTransaction = async (req, res) => {
 
   await pool.query(
     `UPDATE budget_transactions
-        SET account_id=?, type=?, amount=?, description=?, reference_no=?, transaction_date=?, notes=?, project_id=?
+        SET account_id=?, type=?, amount=?, price=?, quantity=?, description=?, reference_no=?, transaction_date=?, notes=?, project_id=?
       WHERE id=?`,
-    [accountId, type, amount, description, referenceNo, transactionDate, notes, projectId, id]
+    [accountId, type, amount, price, quantity, description, referenceNo, transactionDate, notes, projectId, id]
   );
 
   const updated = await fetchTransaction(id);
   const changes = [
     describeAuditChange("Type", existing.type, updated.type),
     describeAuditChange("Amount", existing.amount, updated.amount),
+    describeAuditChange("Price", existing.price, updated.price),
+    describeAuditChange("Qty", existing.quantity, updated.quantity),
     describeAuditChange("Date", existing.transaction_date, updated.transaction_date),
     describeAuditChange("Description", existing.description, updated.description),
     describeAuditChange("Reference", existing.reference_no, updated.reference_no),
@@ -723,7 +786,13 @@ function parseRows(sheet) {
     const amount = Math.round((subtotal > 0 ? subtotal : price * qty) * 100) / 100;
     if (amount <= 0) continue; // no amount -> skip
 
-    results.push({ description: desc.slice(0, 500), amount, transactionDate: txDate });
+    results.push({
+      description: desc.slice(0, 500),
+      price: price > 0 ? price : null,
+      quantity: qty > 0 ? qty : null,
+      amount,
+      transactionDate: txDate
+    });
   }
 
   return results;
@@ -785,9 +854,9 @@ exports.importExcel = async (req, res) => {
     for (const row of rows) {
       const [result] = await connection.query(
         `INSERT INTO budget_transactions
-           (account_id, type, amount, description, transaction_date, project_id, import_batch_id, import_source_name, created_by)
-         VALUES (?,?,?,?,?,?,?,?,?)`,
-        [accountId, type, row.amount, row.description, row.transactionDate, projectId, importBatchId, importSourceName, req.user.id]
+           (account_id, type, amount, price, quantity, description, transaction_date, project_id, import_batch_id, import_source_name, created_by)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+        [accountId, type, row.amount, row.price, row.quantity, row.description, row.transactionDate, projectId, importBatchId, importSourceName, req.user.id]
       );
       const created = await fetchTransaction(result.insertId, connection);
       if (created) createdTransactions.push(created);

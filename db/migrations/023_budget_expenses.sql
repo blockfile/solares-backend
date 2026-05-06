@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS budget_transactions (
   account_id      INT           NOT NULL,
   type            ENUM('in','out') NOT NULL,
   amount          DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  price           DECIMAL(14,2) NULL,
+  quantity        DECIMAL(12,3) NULL,
   description     VARCHAR(500)  NULL,
   reference_no    VARCHAR(100)  NULL,
   transaction_date DATE          NOT NULL,

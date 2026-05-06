@@ -1,0 +1,3 @@
+ALTER TABLE budget_transactions
+  ADD COLUMN IF NOT EXISTS price DECIMAL(14,2) NULL AFTER amount,
+  ADD COLUMN IF NOT EXISTS quantity DECIMAL(12,3) NULL AFTER price;

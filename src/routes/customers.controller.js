@@ -30,6 +30,18 @@ function normalizeDate(value) {
   return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
 }
 
+function formatSqlDate(value) {
+  if (!value) return null;
+  if (typeof value === "string") {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 // ── Customers ─────────────────────────────────────────────────────────────────
 
 async function fetchCustomer(id, connection = pool) {
@@ -210,6 +222,7 @@ function serializeProject(row) {
   const balanceDue = Math.max(0, saleAmount - totalIncome);
   return {
     ...row,
+    project_date: formatSqlDate(row.project_date),
     sale_amount: saleAmount,
     total_expenses: totalExpenses,
     total_income: totalIncome,
@@ -218,6 +231,17 @@ function serializeProject(row) {
     collection_percent: saleAmount > 0 ? Math.min(100, (totalIncome / saleAmount) * 100) : 0,
     transaction_count: toNumber(row.transaction_count, 0),
     margin: saleAmount - totalExpenses
+  };
+}
+
+function serializeProjectTransaction(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    amount: toNumber(row.amount, 0),
+    price: row.price == null ? null : toNumber(row.price, 0),
+    quantity: row.quantity == null ? null : toNumber(row.quantity, 0),
+    transaction_date: formatSqlDate(row.transaction_date)
   };
 }
 
@@ -321,7 +345,7 @@ exports.listProjectTransactions = async (req, res) => {
       ORDER BY bt.transaction_date DESC, bt.id DESC`,
     [id]
   );
-  return res.json(rows);
+  return res.json(rows.map(serializeProjectTransaction));
 };
 
 // ── Summary ───────────────────────────────────────────────────────────────────
