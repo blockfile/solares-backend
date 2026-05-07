@@ -1,6 +1,6 @@
 require("dotenv").config({ quiet: true });
-const XLSX = require("xlsx");
 const { importTemplateFromExcel } = require("../src/services/excelImport");
+const { readWorkbookRows } = require("../src/services/workbookReader");
 
 function shouldSkipSheet(name) {
   const n = String(name || "").toLowerCase();
@@ -14,8 +14,8 @@ async function run() {
     process.exit(1);
   }
 
-  const wb = XLSX.readFile(filePath, { cellFormula: true });
-  const sheetNames = wb.SheetNames.filter((name) => !shouldSkipSheet(name));
+  const workbook = await readWorkbookRows(filePath);
+  const sheetNames = workbook.map((sheet) => sheet.name).filter((name) => !shouldSkipSheet(name));
   if (!sheetNames.length) {
     console.log("No importable sheets found.");
     return;

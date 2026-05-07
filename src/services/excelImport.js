@@ -1,5 +1,5 @@
-const XLSX = require("xlsx");
 const pool = require("../config/db");
+const { readWorkbookRows } = require("./workbookReader");
 
 function normalize(value) {
   return String(value || "")
@@ -176,11 +176,11 @@ function parseItemsFromSheet(data) {
 }
 
 exports.importTemplateFromExcel = async ({ filePath, templateName, sheetName }) => {
-  const wb = XLSX.readFile(filePath, { cellFormula: true });
-  const ws = wb.Sheets[sheetName];
-  if (!ws) throw new Error("Sheet not found: " + sheetName);
+  const workbook = await readWorkbookRows(filePath);
+  const selectedSheet = workbook.find((sheet) => sheet.name === sheetName);
+  if (!selectedSheet) throw new Error("Sheet not found: " + sheetName);
 
-  const data = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
+  const data = selectedSheet.rows;
   const items = parseItemsFromSheet(data);
   if (!items.length) throw new Error("No item rows detected in the selected sheet.");
 

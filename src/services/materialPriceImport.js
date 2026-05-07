@@ -2,8 +2,8 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { execFile } = require("child_process");
-const XLSX = require("xlsx");
 const { normalizeMaterialName } = require("./materialCatalog");
+const { readWorkbookRows } = require("./workbookReader");
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);
@@ -166,7 +166,7 @@ function detectFileType(filePath, mimeType = "") {
   const type = String(mimeType || "").toLowerCase();
 
   if (ext === ".pdf" || type.includes("pdf")) return "pdf";
-  if ([".xlsx", ".xls", ".csv"].includes(ext)) return "excel";
+  if ([".xlsx", ".csv"].includes(ext)) return "excel";
   if (ext === ".json" || type.includes("json")) return "json";
   return "unknown";
 }
@@ -446,14 +446,13 @@ function mergeImportedRows(rows) {
   return Array.from(deduped.values());
 }
 
-function parseWorkbookPriceList(filePath) {
-  const workbook = XLSX.readFile(filePath, { cellFormula: false, raw: true });
+async function parseWorkbookPriceList(filePath) {
+  const workbook = await readWorkbookRows(filePath);
   const rows = [];
 
-  for (const sheetName of workbook.SheetNames) {
-    const worksheet = workbook.Sheets[sheetName];
-    if (!worksheet) continue;
-    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: true, defval: null });
+  for (const sheet of workbook) {
+    const sheetName = sheet.name;
+    const data = sheet.rows;
     if (!Array.isArray(data) || !data.length) continue;
 
     const parsed = parseRowsByHeader(data, sheetName);
@@ -526,12 +525,12 @@ async function parseMaterialPriceFile({ filePath, mimeType }) {
     return { fileType, items: parseJsonPriceList(filePath) };
   }
   if (fileType === "excel") {
-    return { fileType, items: parseWorkbookPriceList(filePath) };
+    return { fileType, items: await parseWorkbookPriceList(filePath) };
   }
   if (fileType === "pdf") {
     return { fileType, items: await parsePdfPriceList(filePath) };
   }
-  throw new Error("Unsupported price list format. Please upload PDF, Excel, CSV, or JSON.");
+  throw new Error("Unsupported price list format. Please upload PDF, XLSX, CSV, or JSON.");
 }
 
 module.exports = {

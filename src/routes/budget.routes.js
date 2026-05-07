@@ -34,8 +34,8 @@ const upload = multer({
   fileFilter: (_req, file, cb) => {
     const ext = String(path.extname(file.originalname || "")).toLowerCase();
 
-    if (![".xlsx", ".xls"].includes(ext)) {
-      cb(new Error("Only Excel files (.xlsx, .xls) are supported."));
+    if (ext !== ".xlsx") {
+      cb(new Error("Only Excel .xlsx files are supported."));
       return;
     }
 

@@ -2,11 +2,32 @@ const router = require("express").Router();
 const auth = require("../middleware/auth");
 const requireModule = require("../middleware/requireModule");
 const multer = require("multer");
-const upload = multer({ dest: "uploads/" });
+const path = require("path");
+const upload = multer({
+  dest: "uploads/",
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = String(path.extname(file.originalname || "")).toLowerCase();
+    if (ext !== ".xlsx") {
+      cb(new Error("Only Excel .xlsx files are supported."));
+      return;
+    }
+    cb(null, true);
+  }
+});
 
 const c = require("./templates.controller");
 
-router.post("/import", auth, requireModule("templates"), upload.single("file"), c.importExcel);
+function uploadTemplateWorkbook(req, res, next) {
+  upload.single("file")(req, res, (error) => {
+    if (error) {
+      return res.status(400).json({ message: error.message || "Failed to upload template workbook." });
+    }
+    return next();
+  });
+}
+
+router.post("/import", auth, requireModule("templates"), uploadTemplateWorkbook, c.importExcel);
 router.post("/", auth, requireModule("templates"), c.createTemplate);
 router.post("/:id/duplicate", auth, requireModule("templates"), c.duplicateTemplate);
 router.get("/", auth, requireModule("templates", "quotes"), c.listTemplates);

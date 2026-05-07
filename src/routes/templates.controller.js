@@ -1,3 +1,4 @@
+const fs = require("fs");
 const pool = require("../config/db");
 const { importTemplateFromExcel } = require("../services/excelImport");
 const { buildTemplateWorkbook, buildTemplateWorkbookBundle } = require("../services/templateExcelExport");
@@ -212,11 +213,16 @@ exports.importExcel = async (req, res) => {
   const { templateName, sheetName } = req.body;
   if (!req.file) return res.status(400).json({ message: "Missing file" });
 
-  const result = await importTemplateFromExcel({
-    filePath: req.file.path,
-    templateName,
-    sheetName
-  });
+  let result;
+  try {
+    result = await importTemplateFromExcel({
+      filePath: req.file.path,
+      templateName,
+      sheetName
+    });
+  } finally {
+    if (req.file?.path) fs.unlink(req.file.path, () => {});
+  }
 
   const importedTemplate = await fetchTemplateRow(result.templateId);
   await safeLogAudit({

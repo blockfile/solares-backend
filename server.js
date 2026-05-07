@@ -3,6 +3,11 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const {
+  getAllowedCorsOrigins,
+  getRequiredJwtSecret,
+  getTrustProxySetting
+} = require("./src/config/security");
 
 const authRoutes = require("./src/routes/auth.routes");
 const eventRoutes = require("./src/routes/events.routes");
@@ -21,11 +26,37 @@ const customerRoutes = require("./src/routes/customers.routes");
 
 const app = express();
 
-app.set("trust proxy", 1);
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
-app.use(express.json({ limit: "10mb" }));
+function toPositiveInteger(value, fallback) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+getRequiredJwtSecret();
+
+const allowedCorsOrigins = new Set(getAllowedCorsOrigins());
+
+app.disable("x-powered-by");
+app.set("trust proxy", getTrustProxySetting());
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedCorsOrigins.has(origin)) return callback(null, true);
+      return callback(new Error("Origin not allowed by CORS"));
+    },
+    credentials: true
+  })
+);
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "1mb" }));
 app.use(helmet());
-app.use(rateLimit({ windowMs: 60_000, max: 200 }));
+app.use(
+  rateLimit({
+    windowMs: 60_000,
+    max: toPositiveInteger(process.env.API_RATE_LIMIT_PER_MINUTE, 200),
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many requests. Please wait and try again." }
+  })
+);
 app.use("/uploads", express.static("uploads"));
 
 app.use("/api/auth", authRoutes);
@@ -44,6 +75,13 @@ app.use("/api/budget", budgetRoutes);
 app.use("/api/customers", customerRoutes);
 
 app.get("/api/health", (_, res) => res.json({ ok: true }));
+
+app.use((error, _req, res, next) => {
+  if (error?.message === "Origin not allowed by CORS") {
+    return res.status(403).json({ message: "Origin not allowed" });
+  }
+  return next(error);
+});
 
 const port = process.env.PORT || 3001;
 app.listen(port, () => console.log(`Backend running on ${port}`));

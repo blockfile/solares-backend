@@ -1,7 +1,7 @@
 const fs = require("fs");
-const XLSX = require("xlsx");
 const pool = require("../config/db");
 const { describeAuditChange, formatAuditValue, getRequestIp, safeLogAudit } = require("../services/audit");
+const { excelSerialToDate, readWorkbookRows } = require("../services/workbookReader");
 
 function toNumber(value, fallback = 0) {
   if (typeof value === "string") {
@@ -829,10 +829,15 @@ function parseExcelDate(value) {
   if (!value && value !== 0) return null;
   // Excel serial number
   if (typeof value === "number") {
-    const date = XLSX.SSF.parse_date_code(value);
-    if (!date) return null;
     const pad = (n) => String(n).padStart(2, "0");
-    return `${date.y}-${pad(date.m)}-${pad(date.d)}`;
+    const date = excelSerialToDate(value);
+    if (!date || Number.isNaN(date.getTime())) return null;
+    return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+  }
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
   }
   // String date
   const text = String(value).trim();
@@ -853,10 +858,7 @@ function parseExcelDate(value) {
   return null;
 }
 
-function parseRows(sheet) {
-  // Convert sheet to array-of-arrays (raw values, no headers)
-  const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
-
+function parseRows(aoa) {
   // Find the header row — look for a row containing "expense" or "description" or "price"
   let headerRowIndex = -1;
   for (let i = 0; i < Math.min(aoa.length, 10); i++) {
@@ -974,13 +976,11 @@ exports.importExcel = async (req, res) => {
   const importBatchId = `imp_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const importSourceName = cleanText(req.file.originalname, 255) || req.file.filename || "Imported Excel";
   try {
-    const workbook = XLSX.readFile(req.file.path, { cellDates: false });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    rows = parseRows(sheet);
+    const workbook = await readWorkbookRows(req.file.path);
+    rows = parseRows(workbook[0]?.rows || []);
   } catch (err) {
     if (req.file?.path) fs.unlink(req.file.path, () => {});
-    return res.status(400).json({ message: "Could not read the Excel file. Make sure it is a valid .xlsx or .xls file." });
+    return res.status(400).json({ message: "Could not read the Excel file. Make sure it is a valid .xlsx file." });
   } finally {
     if (req.file?.path) fs.unlink(req.file.path, () => {});
   }

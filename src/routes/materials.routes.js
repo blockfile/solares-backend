@@ -30,9 +30,9 @@ const upload = multer({
   },
   fileFilter: (_req, file, cb) => {
     const ext = String(path.extname(file.originalname || "")).toLowerCase();
-    const allowed = new Set([".pdf", ".xlsx", ".xls", ".csv", ".json"]);
+    const allowed = new Set([".pdf", ".xlsx", ".csv", ".json"]);
     if (!allowed.has(ext)) {
-      cb(new Error("Only PDF, Excel, CSV, and JSON price lists are supported."));
+      cb(new Error("Only PDF, XLSX, CSV, and JSON price lists are supported."));
       return;
     }
     cb(null, true);

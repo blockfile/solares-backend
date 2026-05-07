@@ -4,6 +4,7 @@ const { normalizeRoleKey, roleLabel } = require("../services/accessControl");
 const { countUsersForRole, getRoleByKey, normalizeStatus } = require("../services/roles");
 const { getRequestIp, safeLogAudit } = require("../services/audit");
 const { isValidUsername, normalizeUsername } = require("../services/userIdentity");
+const { validatePasswordSize } = require("../services/loginSecurity");
 
 function serializeUser(user) {
   const role = normalizeRoleKey(user.role);
@@ -87,6 +88,9 @@ exports.create = async (req, res) => {
     return res.status(400).json({ message: "name, username, email, and password are required" });
   }
 
+  const passwordSizeError = validatePasswordSize(password);
+  if (passwordSizeError) return res.status(400).json({ message: passwordSizeError });
+
   if (!isValidUsername(username)) {
     return res.status(400).json({ message: "Username must be 3-64 characters and use letters, numbers, dot, underscore, plus, or hyphen" });
   }
@@ -156,6 +160,9 @@ exports.update = async (req, res) => {
   const mustChangePassword = req.body.mustChangePassword ? 1 : 0;
 
   if (!name || !username || !email) return res.status(400).json({ message: "name, username, and email are required" });
+
+  const passwordSizeError = password ? validatePasswordSize(password) : null;
+  if (passwordSizeError) return res.status(400).json({ message: passwordSizeError });
 
   if (!isValidUsername(username)) {
     return res.status(400).json({ message: "Username must be 3-64 characters and use letters, numbers, dot, underscore, plus, or hyphen" });

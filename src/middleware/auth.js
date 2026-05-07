@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
+const { getRequiredJwtSecret } = require("../config/security");
 const {
   SYSTEM_ROLE_KEYS,
   defaultModulesForRole,
@@ -15,7 +16,7 @@ module.exports = async function auth(req, res, next) {
 
   let payload;
   try {
-    payload = jwt.verify(token, process.env.JWT_SECRET);
+    payload = jwt.verify(token, getRequiredJwtSecret());
   } catch {
     return res.status(401).json({ message: "Invalid token" });
   }

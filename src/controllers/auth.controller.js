@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { getJwtExpiresIn, getRequiredJwtSecret } = require("../config/security");
 const {
   SYSTEM_ROLE_KEYS,
   defaultModulesForRole,
@@ -11,6 +12,12 @@ const {
 const { getRoleByKey } = require("../services/roles");
 const { getRequestIp, safeLogAudit } = require("../services/audit");
 const { isValidUsername, normalizeUsername } = require("../services/userIdentity");
+const {
+  isPlausibleLoginIdentifier,
+  maskIdentifierForAudit,
+  normalizeLoginIdentifier,
+  validatePasswordSize
+} = require("../services/loginSecurity");
 
 function serializeUser(user) {
   if (!user) return null;
@@ -67,6 +74,9 @@ exports.register = async (req, res) => {
     return res.status(400).json({ message: "name, username, email, and password are required" });
   }
 
+  const passwordSizeError = validatePasswordSize(password);
+  if (passwordSizeError) return res.status(400).json({ message: passwordSizeError });
+
   if (!isValidUsername(username)) {
     return res.status(400).json({ message: "Username must be 3-64 characters and use letters, numbers, dot, underscore, plus, or hyphen" });
   }
@@ -103,11 +113,22 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const identifier = String(req.body.identifier || req.body.email || req.body.username || "").trim();
+  const identifier = normalizeLoginIdentifier(req.body.identifier || req.body.email || req.body.username);
   const password = String(req.body.password || "");
 
   if (!identifier || !password) {
     return res.status(400).json({ message: "Username or email and password are required" });
+  }
+
+  if (!isPlausibleLoginIdentifier(identifier) || validatePasswordSize(password)) {
+    await safeLogAudit({
+      actorName: "Unknown login",
+      module: "AUTH",
+      action: "LOGIN_REJECTED",
+      details: `Rejected login attempt with invalid identifier format. Identifier: ${maskIdentifierForAudit(identifier)}.`,
+      ipAddress: getRequestIp(req)
+    });
+    return res.status(400).json({ message: "Invalid credentials" });
   }
 
   const identifierLower = identifier.toLowerCase();
@@ -125,10 +146,10 @@ exports.login = async (req, res) => {
   );
   if (!rows.length) {
     await safeLogAudit({
-      actorName: identifier,
+      actorName: "Unknown login",
       module: "AUTH",
       action: "LOGIN_FAILED",
-      details: `Failed login attempt for ${identifier}.`,
+      details: `Failed login attempt for unrecognized identifier ${maskIdentifierForAudit(identifier)}.`,
       ipAddress: getRequestIp(req)
     });
     return res.status(400).json({ message: "Invalid credentials" });
@@ -160,8 +181,8 @@ exports.login = async (req, res) => {
     return res.status(400).json({ message: "Invalid credentials" });
   }
 
-  const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-    expiresIn: "8h"
+  const token = jwt.sign({ id: user.id }, getRequiredJwtSecret(), {
+    expiresIn: getJwtExpiresIn()
   });
 
   const joinedUser = await loadUserWithRole(user.id);
@@ -194,6 +215,9 @@ exports.changePassword = async (req, res) => {
   if (password.length < 8) {
     return res.status(400).json({ message: "New password must be at least 8 characters" });
   }
+
+  const passwordSizeError = validatePasswordSize(password, "New password");
+  if (passwordSizeError) return res.status(400).json({ message: passwordSizeError });
 
   const hash = await bcrypt.hash(password, 10);
   await pool.query(
