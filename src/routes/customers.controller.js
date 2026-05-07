@@ -1,6 +1,8 @@
 const pool = require("../config/db");
 const { describeAuditChange, formatAuditValue, getRequestIp, safeLogAudit } = require("../services/audit");
 
+const PROJECT_CATEGORIES = new Set(["materials", "labor", "others"]);
+
 function toNumber(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -40,6 +42,40 @@ function formatSqlDate(value) {
   if (Number.isNaN(date.getTime())) return null;
   const pad = (n) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function parseJsonArray(value) {
+  if (Array.isArray(value)) return value;
+  if (value == null || value === "") return [];
+  try {
+    const parsed = JSON.parse(String(value));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeMaterialsDetails(value) {
+  return parseJsonArray(value).map((row) => {
+    const item = cleanText(row?.item, 200) || "";
+    const qty = Math.max(0, toNumber(row?.qty, 0));
+    const unitCost = Math.max(0, toNumber(row?.unitCost ?? row?.unit_cost, 0));
+    const computedTotal = qty * unitCost;
+    const total = Math.max(0, toNumber(row?.total, computedTotal));
+    return { item, qty, unitCost, total };
+  }).filter((row) => row.item || row.qty > 0 || row.unitCost > 0 || row.total > 0);
+}
+
+function normalizeAmountDetails(value, labelField, maxLength = 240) {
+  return parseJsonArray(value).map((row) => {
+    const label = cleanText(row?.[labelField], maxLength) || "";
+    const amount = Math.max(0, toNumber(row?.amount, 0));
+    return { [labelField]: label, amount };
+  }).filter((row) => row[labelField] || row.amount > 0);
+}
+
+function serializeDetailArray(value) {
+  return JSON.stringify(Array.isArray(value) ? value : []);
 }
 
 // ── Customers ─────────────────────────────────────────────────────────────────
@@ -203,7 +239,7 @@ async function fetchProject(id, connection = pool) {
             COALESCE(SUM(CASE WHEN bt.type='in'  THEN bt.amount ELSE 0 END), 0) AS total_income,
             COUNT(bt.id) AS transaction_count
        FROM customer_projects p
-       JOIN customers c ON c.id = p.customer_id
+       LEFT JOIN customers c ON c.id = p.customer_id
        LEFT JOIN users u ON u.id = p.created_by
        LEFT JOIN budget_transactions bt ON bt.project_id = p.id
       WHERE p.id = ?
@@ -223,6 +259,11 @@ function serializeProject(row) {
   return {
     ...row,
     project_date: formatSqlDate(row.project_date),
+    start_date: formatSqlDate(row.start_date),
+    end_date: formatSqlDate(row.end_date),
+    materials_details: normalizeMaterialsDetails(row.materials_details),
+    labor_details: normalizeAmountDetails(row.labor_details, "description"),
+    other_expenses_details: normalizeAmountDetails(row.other_expenses_details, "expenses"),
     sale_amount: saleAmount,
     total_expenses: totalExpenses,
     total_income: totalIncome,
@@ -260,7 +301,7 @@ exports.listProjects = async (req, res) => {
             COALESCE(SUM(CASE WHEN bt.type='in'  THEN bt.amount ELSE 0 END), 0) AS total_income,
             COUNT(bt.id) AS transaction_count
        FROM customer_projects p
-       JOIN customers c ON c.id = p.customer_id
+       LEFT JOIN customers c ON c.id = p.customer_id
        LEFT JOIN users u ON u.id = p.created_by
        LEFT JOIN budget_transactions bt ON bt.project_id = p.id
        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
@@ -272,24 +313,35 @@ exports.listProjects = async (req, res) => {
 };
 
 exports.createProject = async (req, res) => {
-  const customerId = Number(req.body.customerId || 0);
-  if (!customerId) return res.status(400).json({ message: "customerId is required" });
+  const customerId = Number(req.body.customerId || 0) || null;
   const projectName = cleanText(req.body.projectName, 200);
   if (!projectName) return res.status(400).json({ message: "projectName is required" });
   const saleAmount = Math.max(0, toNumber(req.body.saleAmount, 0));
+  const systemPackage = cleanText(req.body.systemPackage, 160);
+  const location = cleanText(req.body.location, 255);
   const projectDate = normalizeDate(req.body.projectDate);
+  const startDate = normalizeDate(req.body.startDate);
+  const endDate = normalizeDate(req.body.endDate);
+  const materialsDetails = normalizeMaterialsDetails(req.body.materialsDetails ?? req.body.materials_details);
+  const laborDetails = normalizeAmountDetails(req.body.laborDetails ?? req.body.labor_details, "description");
+  const otherExpensesDetails = normalizeAmountDetails(req.body.otherExpensesDetails ?? req.body.other_expenses_details, "expenses");
   const notes = cleanText(req.body.notes, 4000);
   const status = ["active", "completed", "cancelled"].includes(req.body.status) ? req.body.status : "active";
+  const projectCategory = PROJECT_CATEGORIES.has(req.body.projectCategory) ? req.body.projectCategory : "materials";
 
-  const [custRows] = await pool.query("SELECT id, name FROM customers WHERE id=? LIMIT 1", [customerId]);
-  if (!custRows.length) return res.status(404).json({ message: "Customer not found" });
+  let customerName = null;
+  if (customerId) {
+    const [custRows] = await pool.query("SELECT id, name FROM customers WHERE id=? LIMIT 1", [customerId]);
+    if (!custRows.length) return res.status(404).json({ message: "Customer not found" });
+    customerName = custRows[0].name;
+  }
 
   const [result] = await pool.query(
-    "INSERT INTO customer_projects (customer_id, project_name, sale_amount, project_date, status, notes, created_by) VALUES (?,?,?,?,?,?,?)",
-    [customerId, projectName, saleAmount, projectDate, status, notes, req.user.id]
+    "INSERT INTO customer_projects (customer_id, project_name, system_package, location, sale_amount, project_date, start_date, end_date, materials_details, labor_details, other_expenses_details, status, project_category, notes, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    [customerId, projectName, systemPackage, location, saleAmount, projectDate, startDate, endDate, serializeDetailArray(materialsDetails), serializeDetailArray(laborDetails), serializeDetailArray(otherExpensesDetails), status, projectCategory, notes, req.user.id]
   );
   const created = await fetchProject(result.insertId);
-  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "SALES", action: "PROJECT_CREATED", details: `Project "${projectName}" created for ${custRows[0].name}. Sale: ${formatAuditValue(saleAmount)}.`, ipAddress: getRequestIp(req) });
+  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "SALES", action: "PROJECT_CREATED", details: `Project "${projectName}" created${customerName ? ` for ${customerName}` : ""}. Sale: ${formatAuditValue(saleAmount)}.`, ipAddress: getRequestIp(req) });
   return res.status(201).json(created);
 };
 
@@ -301,22 +353,35 @@ exports.updateProject = async (req, res) => {
 
   const projectName = Object.prototype.hasOwnProperty.call(req.body, "projectName") ? cleanText(req.body.projectName, 200) : existing.project_name;
   const saleAmount = Object.prototype.hasOwnProperty.call(req.body, "saleAmount") ? Math.max(0, toNumber(req.body.saleAmount, 0)) : toNumber(existing.sale_amount, 0);
+  const systemPackage = Object.prototype.hasOwnProperty.call(req.body, "systemPackage") ? cleanText(req.body.systemPackage, 160) : existing.system_package;
+  const location = Object.prototype.hasOwnProperty.call(req.body, "location") ? cleanText(req.body.location, 255) : existing.location;
   const projectDate = Object.prototype.hasOwnProperty.call(req.body, "projectDate") ? normalizeDate(req.body.projectDate) : existing.project_date;
+  const startDate = Object.prototype.hasOwnProperty.call(req.body, "startDate") ? normalizeDate(req.body.startDate) : existing.start_date;
+  const endDate = Object.prototype.hasOwnProperty.call(req.body, "endDate") ? normalizeDate(req.body.endDate) : existing.end_date;
+  const materialsDetails = Object.prototype.hasOwnProperty.call(req.body, "materialsDetails") || Object.prototype.hasOwnProperty.call(req.body, "materials_details") ? normalizeMaterialsDetails(req.body.materialsDetails ?? req.body.materials_details) : existing.materials_details;
+  const laborDetails = Object.prototype.hasOwnProperty.call(req.body, "laborDetails") || Object.prototype.hasOwnProperty.call(req.body, "labor_details") ? normalizeAmountDetails(req.body.laborDetails ?? req.body.labor_details, "description") : existing.labor_details;
+  const otherExpensesDetails = Object.prototype.hasOwnProperty.call(req.body, "otherExpensesDetails") || Object.prototype.hasOwnProperty.call(req.body, "other_expenses_details") ? normalizeAmountDetails(req.body.otherExpensesDetails ?? req.body.other_expenses_details, "expenses") : existing.other_expenses_details;
   const status = Object.prototype.hasOwnProperty.call(req.body, "status") ? (["active", "completed", "cancelled"].includes(req.body.status) ? req.body.status : existing.status) : existing.status;
+  const projectCategory = Object.prototype.hasOwnProperty.call(req.body, "projectCategory") ? (PROJECT_CATEGORIES.has(req.body.projectCategory) ? req.body.projectCategory : existing.project_category) : existing.project_category;
   const notes = Object.prototype.hasOwnProperty.call(req.body, "notes") ? cleanText(req.body.notes, 4000) : existing.notes;
 
   if (!projectName) return res.status(400).json({ message: "projectName is required" });
 
   await pool.query(
-    "UPDATE customer_projects SET project_name=?, sale_amount=?, project_date=?, status=?, notes=? WHERE id=?",
-    [projectName, saleAmount, projectDate, status, notes, id]
+    "UPDATE customer_projects SET project_name=?, system_package=?, location=?, sale_amount=?, project_date=?, start_date=?, end_date=?, materials_details=?, labor_details=?, other_expenses_details=?, status=?, project_category=?, notes=? WHERE id=?",
+    [projectName, systemPackage, location, saleAmount, projectDate, startDate, endDate, serializeDetailArray(materialsDetails), serializeDetailArray(laborDetails), serializeDetailArray(otherExpensesDetails), status, projectCategory, notes, id]
   );
 
   const updated = await fetchProject(id);
   const changes = [
     describeAuditChange("Name", existing.project_name, updated.project_name),
+    describeAuditChange("System package", existing.system_package, updated.system_package),
+    describeAuditChange("Location", existing.location, updated.location),
     describeAuditChange("Sale amount", existing.sale_amount, updated.sale_amount),
+    describeAuditChange("Start date", existing.start_date, updated.start_date),
+    describeAuditChange("End date", existing.end_date, updated.end_date),
     describeAuditChange("Status", existing.status, updated.status),
+    describeAuditChange("Category", existing.project_category, updated.project_category),
   ].filter(Boolean);
   await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "SALES", action: "PROJECT_UPDATED", details: changes.length ? `Project "${updated.project_name}" updated. ${changes.join("; ")}.` : `Project "${updated.project_name}" saved.`, ipAddress: getRequestIp(req) });
   return res.json(updated);

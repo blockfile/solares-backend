@@ -3,6 +3,8 @@ const pool = require("../config/db");
 const { describeAuditChange, formatAuditValue, getRequestIp, safeLogAudit } = require("../services/audit");
 const { excelSerialToDate, readWorkbookRows } = require("../services/workbookReader");
 
+const ACCOUNT_TYPES = new Set(["income", "expense", "investment", "withdrawal"]);
+
 function toNumber(value, fallback = 0) {
   if (typeof value === "string") {
     const cleaned = value
@@ -306,7 +308,7 @@ exports.listAccounts = async (req, res) => {
 
 exports.createAccount = async (req, res) => {
   const name = cleanText(req.body.name, 120);
-  const type = ["income", "expense"].includes(req.body.type) ? req.body.type : "expense";
+  const type = ACCOUNT_TYPES.has(req.body.type) ? req.body.type : "expense";
   const description = cleanText(req.body.description, 500);
   const isActive = toFlag(req.body.isActive, true) ? 1 : 0;
 
@@ -344,7 +346,7 @@ exports.updateAccount = async (req, res) => {
     ? cleanText(req.body.name, 120)
     : existing.name;
   const type = Object.prototype.hasOwnProperty.call(req.body, "type")
-    ? (["income", "expense"].includes(req.body.type) ? req.body.type : existing.type)
+    ? (ACCOUNT_TYPES.has(req.body.type) ? req.body.type : existing.type)
     : existing.type;
   const description = Object.prototype.hasOwnProperty.call(req.body, "description")
     ? cleanText(req.body.description, 500)
@@ -722,13 +724,13 @@ exports.bulkAssignProject = async (req, res) => {
     const [projectRows] = await pool.query(
       `SELECT p.id, p.project_name, c.name AS customer_name
          FROM customer_projects p
-         JOIN customers c ON c.id = p.customer_id
+         LEFT JOIN customers c ON c.id = p.customer_id
         WHERE p.id=?
         LIMIT 1`,
       [projectId]
     );
     if (!projectRows.length) return res.status(404).json({ message: "Project not found" });
-    projectName = `${projectRows[0].customer_name} - ${projectRows[0].project_name}`;
+    projectName = projectRows[0].customer_name ? `${projectRows[0].customer_name} - ${projectRows[0].project_name}` : projectRows[0].project_name;
   }
 
   const placeholders = ids.map(() => "?").join(",");
@@ -797,7 +799,7 @@ exports.summary = async (req, res) => {
     const [projectRows] = await pool.query(
       `SELECT p.sale_amount, p.project_name, c.name AS customer_name
          FROM customer_projects p
-         JOIN customers c ON c.id = p.customer_id
+         LEFT JOIN customers c ON c.id = p.customer_id
         WHERE p.id=?
         LIMIT 1`,
       [projectId]
