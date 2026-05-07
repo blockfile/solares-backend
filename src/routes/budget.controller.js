@@ -67,6 +67,49 @@ function nullableNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object || {}, key);
+}
+
+function transactionLineHasValue(line) {
+  return ["description", "price", "quantity", "qty", "amount", "notes"].some((field) => {
+    const value = line?.[field];
+    return value != null && String(value).trim() !== "";
+  });
+}
+
+function normalizeTransactionLine(line, index = 0) {
+  const label = index > 0 ? `Line ${index + 1}: ` : "";
+  const price = hasOwn(line, "price") ? nullableNumber(line.price) : null;
+  const quantity = hasOwn(line, "quantity")
+    ? nullableNumber(line.quantity)
+    : hasOwn(line, "qty")
+      ? nullableNumber(line.qty)
+      : null;
+
+  if (price != null && price < 0) return { error: `${label}price cannot be negative` };
+  if (quantity != null && quantity < 0) return { error: `${label}quantity cannot be negative` };
+
+  const computedAmount = price != null && quantity != null && price > 0 && quantity > 0
+    ? roundAmount(price * quantity)
+    : 0;
+  const amount = hasOwn(line, "amount")
+    ? roundAmount(line.amount, computedAmount)
+    : computedAmount;
+
+  if (amount <= 0) return { error: `${label}amount must be greater than zero` };
+
+  return {
+    value: {
+      price,
+      quantity,
+      amount,
+      description: cleanText(line.description, 500),
+      notes: cleanText(line.notes, 4000)
+    }
+  };
+}
+
 function decimalColumnMatches(column, precision, scale, nullable) {
   const match = String(column?.Type || "").match(/^decimal\((\d+),(\d+)\)$/i);
   if (!match) return false;
@@ -407,32 +450,25 @@ exports.createTransaction = async (req, res) => {
   const type = ["in", "out"].includes(req.body.type) ? req.body.type : null;
   if (!type) return res.status(400).json({ message: "type must be 'in' or 'out'" });
 
-  const price = Object.prototype.hasOwnProperty.call(req.body, "price")
-    ? nullableNumber(req.body.price)
-    : null;
-  const quantity = Object.prototype.hasOwnProperty.call(req.body, "quantity")
-    ? nullableNumber(req.body.quantity)
-    : Object.prototype.hasOwnProperty.call(req.body, "qty")
-      ? nullableNumber(req.body.qty)
-      : null;
-  if (price != null && price < 0) return res.status(400).json({ message: "price cannot be negative" });
-  if (quantity != null && quantity < 0) return res.status(400).json({ message: "quantity cannot be negative" });
-
-  const computedAmount = price != null && quantity != null && price > 0 && quantity > 0
-    ? roundAmount(price * quantity)
-    : 0;
-  const amount = Object.prototype.hasOwnProperty.call(req.body, "amount")
-    ? roundAmount(req.body.amount, computedAmount)
-    : computedAmount;
-  if (amount <= 0) return res.status(400).json({ message: "amount must be greater than zero" });
-
   const transactionDate = normalizeDate(req.body.transactionDate) || normalizeDate(new Date().toISOString());
   if (!transactionDate) return res.status(400).json({ message: "Invalid transactionDate" });
 
-  const description = cleanText(req.body.description, 500);
   const referenceNo = cleanText(req.body.referenceNo, 100);
-  const notes = cleanText(req.body.notes, 4000);
   const projectId = Number(req.body.projectId || 0) || null;
+  const requestedLines = Array.isArray(req.body.items)
+    ? req.body.items.filter(transactionLineHasValue).slice(0, 100)
+    : [req.body];
+
+  if (!requestedLines.length) {
+    return res.status(400).json({ message: "Add at least one transaction line." });
+  }
+
+  const lines = [];
+  for (let index = 0; index < requestedLines.length; index += 1) {
+    const normalized = normalizeTransactionLine(requestedLines[index], index);
+    if (normalized.error) return res.status(400).json({ message: normalized.error });
+    lines.push(normalized.value);
+  }
 
   const [accountRows] = await pool.query("SELECT * FROM budget_accounts WHERE id=? LIMIT 1", [accountId]);
   if (!accountRows.length) return res.status(404).json({ message: "Account not found" });
@@ -442,22 +478,49 @@ exports.createTransaction = async (req, res) => {
     if (!projectRows.length) return res.status(404).json({ message: "Project not found" });
   }
 
-  const [result] = await pool.query(
-    `INSERT INTO budget_transactions
-       (account_id, type, amount, price, quantity, description, reference_no, transaction_date, notes, project_id, created_by)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-    [accountId, type, amount, price, quantity, description, referenceNo, transactionDate, notes, projectId, req.user.id]
-  );
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const createdTransactions = [];
 
-  const created = await fetchTransaction(result.insertId);
-  await safeLogAudit({
-    userId: req.user.id, actorName: req.user.name, module: "BUDGET",
-    action: "TRANSACTION_CREATED",
-    details: `${type === "in" ? "Income" : "Expense"} of ${formatAuditValue(amount)} recorded under "${accountRows[0].name}". Ref: ${formatAuditValue(referenceNo)}.`,
-    ipAddress: getRequestIp(req)
-  });
+    for (const line of lines) {
+      const [result] = await connection.query(
+        `INSERT INTO budget_transactions
+           (account_id, type, amount, price, quantity, description, reference_no, transaction_date, notes, project_id, created_by)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+        [accountId, type, line.amount, line.price, line.quantity, line.description, referenceNo, transactionDate, line.notes, projectId, req.user.id]
+      );
+      const created = await fetchTransaction(result.insertId, connection);
+      if (created) createdTransactions.push(created);
+    }
 
-  return res.status(201).json(created);
+    await connection.commit();
+    connection.release();
+
+    const totalAmount = lines.reduce((sum, line) => sum + toNumber(line.amount, 0), 0);
+    await safeLogAudit({
+      userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+      action: lines.length > 1 ? "TRANSACTIONS_CREATED" : "TRANSACTION_CREATED",
+      details: lines.length > 1
+        ? `${lines.length} ${type === "in" ? "income" : "expense"} transaction(s) totaling ${formatAuditValue(totalAmount)} recorded under "${accountRows[0].name}". Ref: ${formatAuditValue(referenceNo)}.`
+        : `${type === "in" ? "Income" : "Expense"} of ${formatAuditValue(totalAmount)} recorded under "${accountRows[0].name}". Ref: ${formatAuditValue(referenceNo)}.`,
+      ipAddress: getRequestIp(req)
+    });
+
+    if (Array.isArray(req.body.items)) {
+      return res.status(201).json({
+        created: createdTransactions.length,
+        transactions: createdTransactions,
+        totalAmount
+      });
+    }
+
+    return res.status(201).json(createdTransactions[0]);
+  } catch (error) {
+    await connection.rollback();
+    connection.release();
+    throw error;
+  }
 };
 
 exports.updateTransaction = async (req, res) => {
