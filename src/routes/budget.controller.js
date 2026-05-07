@@ -72,7 +72,7 @@ function hasOwn(object, key) {
 }
 
 function transactionLineHasValue(line) {
-  return ["description", "price", "quantity", "qty", "amount", "notes"].some((field) => {
+  return ["description", "price", "quantity", "qty", "discount", "amount", "notes"].some((field) => {
     const value = line?.[field];
     return value != null && String(value).trim() !== "";
   });
@@ -86,16 +86,26 @@ function normalizeTransactionLine(line, index = 0) {
     : hasOwn(line, "qty")
       ? nullableNumber(line.qty)
       : null;
+  const discount = hasOwn(line, "discount") ? nullableNumber(line.discount) : null;
+  const discountAmount = discount == null ? 0 : roundAmount(discount);
 
   if (price != null && price < 0) return { error: `${label}price cannot be negative` };
   if (quantity != null && quantity < 0) return { error: `${label}quantity cannot be negative` };
+  if (discount != null && discount < 0) return { error: `${label}discount cannot be negative` };
 
-  const computedAmount = price != null && quantity != null && price > 0 && quantity > 0
+  const grossAmount = price != null && quantity != null && price > 0 && quantity > 0
     ? roundAmount(price * quantity)
-    : 0;
-  const amount = hasOwn(line, "amount")
-    ? roundAmount(line.amount, computedAmount)
-    : computedAmount;
+    : null;
+  if (grossAmount != null && discountAmount >= grossAmount) {
+    return { error: `${label}discount must be less than price times quantity` };
+  }
+
+  const computedAmount = grossAmount != null ? roundAmount(grossAmount - discountAmount) : 0;
+  const amount = grossAmount != null
+    ? computedAmount
+    : hasOwn(line, "amount")
+      ? roundAmount(line.amount, computedAmount)
+      : computedAmount;
 
   if (amount <= 0) return { error: `${label}amount must be greater than zero` };
 
@@ -103,6 +113,7 @@ function normalizeTransactionLine(line, index = 0) {
     value: {
       price,
       quantity,
+      discount: discount == null ? null : discountAmount,
       amount,
       description: cleanText(line.description, 500),
       notes: cleanText(line.notes, 4000)
@@ -151,6 +162,7 @@ function serializeTransaction(row) {
     amount: formatMoney(row.amount),
     price: row.price == null ? null : formatMoney(row.price),
     quantity: row.quantity == null ? null : toNumber(row.quantity, 0),
+    discount: row.discount == null ? null : formatMoney(row.discount),
     transaction_date: formatSqlDate(row.transaction_date),
     running_balance: row.running_balance != null ? formatMoney(row.running_balance) : null
   };
@@ -197,6 +209,14 @@ async function ensureImportTrackingSchema() {
         scale: 4,
         nullable: true,
         after: "price"
+      });
+      await ensureDecimalColumn({
+        name: "discount",
+        definition: "DECIMAL(14,2) NULL",
+        precision: 14,
+        scale: 2,
+        nullable: true,
+        after: "quantity"
       });
 
       const [indexRows] = await pool.query("SHOW INDEX FROM budget_transactions WHERE Key_name = 'idx_budget_transactions_import_batch'");
@@ -486,9 +506,9 @@ exports.createTransaction = async (req, res) => {
     for (const line of lines) {
       const [result] = await connection.query(
         `INSERT INTO budget_transactions
-           (account_id, type, amount, price, quantity, description, reference_no, transaction_date, notes, project_id, created_by)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-        [accountId, type, line.amount, line.price, line.quantity, line.description, referenceNo, transactionDate, line.notes, projectId, req.user.id]
+           (account_id, type, amount, price, quantity, discount, description, reference_no, transaction_date, notes, project_id, created_by)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [accountId, type, line.amount, line.price, line.quantity, line.discount, line.description, referenceNo, transactionDate, line.notes, projectId, req.user.id]
       );
       const created = await fetchTransaction(result.insertId, connection);
       if (created) createdTransactions.push(created);
@@ -535,10 +555,6 @@ exports.updateTransaction = async (req, res) => {
   const type = Object.prototype.hasOwnProperty.call(req.body, "type")
     ? (["in", "out"].includes(req.body.type) ? req.body.type : existing.type)
     : existing.type;
-  const amount = Object.prototype.hasOwnProperty.call(req.body, "amount")
-    ? roundAmount(req.body.amount)
-    : roundAmount(existing.amount);
-  if (amount <= 0) return res.status(400).json({ message: "amount must be greater than zero" });
   const price = Object.prototype.hasOwnProperty.call(req.body, "price")
     ? nullableNumber(req.body.price)
     : existing.price;
@@ -547,8 +563,26 @@ exports.updateTransaction = async (req, res) => {
     : Object.prototype.hasOwnProperty.call(req.body, "qty")
       ? nullableNumber(req.body.qty)
       : existing.quantity;
+  const discount = Object.prototype.hasOwnProperty.call(req.body, "discount")
+    ? nullableNumber(req.body.discount)
+    : existing.discount;
   if (price != null && price < 0) return res.status(400).json({ message: "price cannot be negative" });
   if (quantity != null && quantity < 0) return res.status(400).json({ message: "quantity cannot be negative" });
+  if (discount != null && discount < 0) return res.status(400).json({ message: "discount cannot be negative" });
+
+  const grossAmount = price != null && quantity != null && price > 0 && quantity > 0
+    ? roundAmount(price * quantity)
+    : null;
+  const discountAmount = discount == null ? 0 : roundAmount(discount);
+  if (grossAmount != null && discountAmount >= grossAmount) {
+    return res.status(400).json({ message: "discount must be less than price times quantity" });
+  }
+  const amount = grossAmount != null
+    ? roundAmount(grossAmount - discountAmount)
+    : Object.prototype.hasOwnProperty.call(req.body, "amount")
+      ? roundAmount(req.body.amount)
+      : roundAmount(existing.amount);
+  if (amount <= 0) return res.status(400).json({ message: "amount must be greater than zero" });
 
   const transactionDate = Object.prototype.hasOwnProperty.call(req.body, "transactionDate")
     ? normalizeDate(req.body.transactionDate)
@@ -578,9 +612,9 @@ exports.updateTransaction = async (req, res) => {
 
   await pool.query(
     `UPDATE budget_transactions
-        SET account_id=?, type=?, amount=?, price=?, quantity=?, description=?, reference_no=?, transaction_date=?, notes=?, project_id=?
+        SET account_id=?, type=?, amount=?, price=?, quantity=?, discount=?, description=?, reference_no=?, transaction_date=?, notes=?, project_id=?
       WHERE id=?`,
-    [accountId, type, amount, price, quantity, description, referenceNo, transactionDate, notes, projectId, id]
+    [accountId, type, amount, price, quantity, discount == null ? null : discountAmount, description, referenceNo, transactionDate, notes, projectId, id]
   );
 
   const updated = await fetchTransaction(id);
@@ -589,6 +623,7 @@ exports.updateTransaction = async (req, res) => {
     describeAuditChange("Amount", existing.amount, updated.amount),
     describeAuditChange("Price", existing.price, updated.price),
     describeAuditChange("Qty", existing.quantity, updated.quantity),
+    describeAuditChange("Discount", existing.discount, updated.discount),
     describeAuditChange("Date", existing.transaction_date, updated.transaction_date),
     describeAuditChange("Description", existing.description, updated.description),
     describeAuditChange("Reference", existing.reference_no, updated.reference_no),
@@ -835,7 +870,7 @@ function parseRows(sheet) {
   }
 
   // Detect column indices from header row
-  let colNo = -1, colDate = -1, colDesc = -1, colPrice = -1, colQty = -1, colSubtotal = -1, colAmount = -1;
+  let colNo = -1, colDate = -1, colDesc = -1, colPrice = -1, colQty = -1, colDiscount = -1, colSubtotal = -1, colAmount = -1;
 
   if (headerRowIndex >= 0) {
     const hrow = aoa[headerRowIndex].map((c) => String(c || "").toLowerCase().trim());
@@ -847,16 +882,21 @@ function parseRows(sheet) {
       else if (/^price$|^unit.?price/.test(h)) colPrice = i;
       else if (/^amount$|^cost$/.test(h)) colAmount = i;
       else if (/^qty$|^quantity$/.test(h)) colQty = i;
+      else if (/discount|^disc\.?$/.test(h)) colDiscount = i;
     });
     if (colPrice === -1 && colAmount >= 0) colPrice = colAmount;
     // Fallback: if no amount-like column was found, take the first numeric-looking col after desc.
     if (colSubtotal === -1 && colPrice === -1 && colDesc >= 0) colPrice = colDesc + 1;
   }
 
-  // If we couldn't find headers, guess by position (matches the screenshot layout):
-  // Col A=No, B=Date, C=Expenses, D=Price, E=Qty, F=Sub Total
+  // If we couldn't find headers, guess by position (matches the common expense sheet layout).
   if (colDesc === -1) {
-    colNo = 0; colDate = 1; colDesc = 2; colPrice = 3; colQty = 4; colSubtotal = 5;
+    const guessedHasDiscount = aoa
+      .slice(1, 10)
+      .some((row) => Array.isArray(row) && row.length > 6 && row[6] != null && String(row[6]).trim() !== "");
+    colNo = 0; colDate = 1; colDesc = 2; colPrice = 3; colQty = 4;
+    colDiscount = guessedHasDiscount ? 5 : -1;
+    colSubtotal = guessedHasDiscount ? 6 : 5;
   }
 
   const dataStart = headerRowIndex >= 0 ? headerRowIndex + 1 : 1;
@@ -881,14 +921,17 @@ function parseRows(sheet) {
     const price = toNumber(rawPrice, 0);
     const rawQty = colQty >= 0 ? row[colQty] : null;
     const qty = Math.max(1, toNumber(rawQty, 1));
+    const rawDiscount = colDiscount >= 0 ? row[colDiscount] : null;
+    const discount = Math.max(0, roundAmount(toNumber(rawDiscount, 0)));
 
-    const amount = roundAmount(subtotal > 0 ? subtotal : price * qty);
+    const amount = roundAmount(subtotal > 0 ? subtotal : price * qty - discount);
     if (amount <= 0) continue; // no amount -> skip
 
     results.push({
       description: desc.slice(0, 500),
       price: price > 0 ? price : null,
       quantity: qty > 0 ? qty : null,
+      discount: discount > 0 ? discount : null,
       amount,
       transactionDate: txDate
     });
@@ -953,9 +996,9 @@ exports.importExcel = async (req, res) => {
     for (const row of rows) {
       const [result] = await connection.query(
         `INSERT INTO budget_transactions
-           (account_id, type, amount, price, quantity, description, transaction_date, project_id, import_batch_id, import_source_name, created_by)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-        [accountId, type, row.amount, row.price, row.quantity, row.description, row.transactionDate, projectId, importBatchId, importSourceName, req.user.id]
+           (account_id, type, amount, price, quantity, discount, description, transaction_date, project_id, import_batch_id, import_source_name, created_by)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [accountId, type, row.amount, row.price, row.quantity, row.discount, row.description, row.transactionDate, projectId, importBatchId, importSourceName, req.user.id]
       );
       const created = await fetchTransaction(result.insertId, connection);
       if (created) createdTransactions.push(created);

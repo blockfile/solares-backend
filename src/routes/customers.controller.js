@@ -241,6 +241,7 @@ function serializeProjectTransaction(row) {
     amount: toNumber(row.amount, 0),
     price: row.price == null ? null : toNumber(row.price, 0),
     quantity: row.quantity == null ? null : toNumber(row.quantity, 0),
+    discount: row.discount == null ? null : toNumber(row.discount, 0),
     transaction_date: formatSqlDate(row.transaction_date)
   };
 }

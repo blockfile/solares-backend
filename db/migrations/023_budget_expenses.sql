@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS budget_transactions (
   amount          DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   price           DECIMAL(14,4) NULL,
   quantity        DECIMAL(12,4) NULL,
+  discount        DECIMAL(14,2) NULL,
   description     VARCHAR(500)  NULL,
   reference_no    VARCHAR(100)  NULL,
   transaction_date DATE          NOT NULL,
