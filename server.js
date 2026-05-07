@@ -35,15 +35,32 @@ getRequiredJwtSecret();
 
 const allowedCorsOrigins = new Set(getAllowedCorsOrigins());
 
+function getRequestHosts(req) {
+  return [
+    req.get("host"),
+    String(req.headers["x-forwarded-host"] || "").split(",")[0].trim()
+  ].filter(Boolean);
+}
+
+function isSameHostOrigin(req, origin) {
+  try {
+    const originHost = new URL(origin).host;
+    return getRequestHosts(req).some((host) => host === originHost);
+  } catch {
+    return false;
+  }
+}
+
 app.disable("x-powered-by");
 app.set("trust proxy", getTrustProxySetting());
 app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || allowedCorsOrigins.has(origin)) return callback(null, true);
-      return callback(new Error("Origin not allowed by CORS"));
-    },
-    credentials: true
+  cors((req, callback) => {
+    const origin = req.headers.origin;
+    const allowed = !origin || allowedCorsOrigins.has(origin) || isSameHostOrigin(req, origin);
+    callback(allowed ? null : new Error("Origin not allowed by CORS"), {
+      origin: allowed,
+      credentials: true
+    });
   })
 );
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "1mb" }));
