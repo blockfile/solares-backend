@@ -57,10 +57,36 @@ function formatMoney(value) {
   return toNumber(value, 0);
 }
 
+function roundLineAmount(value) {
+  return Math.round(toNumber(value, 0) * 10000) / 10000;
+}
+
 function nullableNumber(value) {
   if (value == null || value === "") return null;
   const n = toNumber(value, NaN);
   return Number.isFinite(n) ? n : null;
+}
+
+function decimalColumnMatches(column, precision, scale, nullable) {
+  const match = String(column?.Type || "").match(/^decimal\((\d+),(\d+)\)$/i);
+  if (!match) return false;
+  return Number(match[1]) === precision
+    && Number(match[2]) === scale
+    && (String(column?.Null || "").toUpperCase() === "YES") === nullable;
+}
+
+async function ensureDecimalColumn({ name, definition, precision, scale, nullable, after }) {
+  const [cols] = await pool.query(`SHOW COLUMNS FROM budget_transactions LIKE '${name}'`);
+  if (!cols.length) {
+    await pool.query(
+      `ALTER TABLE budget_transactions ADD COLUMN ${name} ${definition}${after ? ` AFTER ${after}` : ""}`
+    );
+    return;
+  }
+
+  if (!decimalColumnMatches(cols[0], precision, scale, nullable)) {
+    await pool.query(`ALTER TABLE budget_transactions MODIFY COLUMN ${name} ${definition}`);
+  }
 }
 
 function serializeAccount(row) {
@@ -106,19 +132,29 @@ async function ensureImportTrackingSchema() {
         );
       }
 
-      const [priceCols] = await pool.query("SHOW COLUMNS FROM budget_transactions LIKE 'price'");
-      if (!priceCols.length) {
-        await pool.query(
-          "ALTER TABLE budget_transactions ADD COLUMN price DECIMAL(14,2) NULL AFTER amount"
-        );
-      }
-
-      const [quantityCols] = await pool.query("SHOW COLUMNS FROM budget_transactions LIKE 'quantity'");
-      if (!quantityCols.length) {
-        await pool.query(
-          "ALTER TABLE budget_transactions ADD COLUMN quantity DECIMAL(12,3) NULL AFTER price"
-        );
-      }
+      await ensureDecimalColumn({
+        name: "amount",
+        definition: "DECIMAL(14,4) NOT NULL DEFAULT 0.0000",
+        precision: 14,
+        scale: 4,
+        nullable: false
+      });
+      await ensureDecimalColumn({
+        name: "price",
+        definition: "DECIMAL(14,4) NULL",
+        precision: 14,
+        scale: 4,
+        nullable: true,
+        after: "amount"
+      });
+      await ensureDecimalColumn({
+        name: "quantity",
+        definition: "DECIMAL(12,4) NULL",
+        precision: 12,
+        scale: 4,
+        nullable: true,
+        after: "price"
+      });
 
       const [indexRows] = await pool.query("SHOW INDEX FROM budget_transactions WHERE Key_name = 'idx_budget_transactions_import_batch'");
       if (!indexRows.length) {
@@ -383,7 +419,7 @@ exports.createTransaction = async (req, res) => {
   if (quantity != null && quantity < 0) return res.status(400).json({ message: "quantity cannot be negative" });
 
   const computedAmount = price != null && quantity != null && price > 0 && quantity > 0
-    ? Math.round(price * quantity * 100) / 100
+    ? roundLineAmount(price * quantity)
     : 0;
   const amount = Object.prototype.hasOwnProperty.call(req.body, "amount")
     ? toNumber(req.body.amount, computedAmount)
@@ -783,7 +819,7 @@ function parseRows(sheet) {
     const rawQty = colQty >= 0 ? row[colQty] : null;
     const qty = Math.max(1, toNumber(rawQty, 1));
 
-    const amount = Math.round((subtotal > 0 ? subtotal : price * qty) * 100) / 100;
+    const amount = roundLineAmount(subtotal > 0 ? subtotal : price * qty);
     if (amount <= 0) continue; // no amount -> skip
 
     results.push({
