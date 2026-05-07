@@ -57,8 +57,8 @@ function formatMoney(value) {
   return toNumber(value, 0);
 }
 
-function roundLineAmount(value) {
-  return Math.round(toNumber(value, 0) * 10000) / 10000;
+function roundAmount(value, fallback = 0) {
+  return Math.round(toNumber(value, fallback) * 100) / 100;
 }
 
 function nullableNumber(value) {
@@ -134,9 +134,9 @@ async function ensureImportTrackingSchema() {
 
       await ensureDecimalColumn({
         name: "amount",
-        definition: "DECIMAL(14,4) NOT NULL DEFAULT 0.0000",
+        definition: "DECIMAL(14,2) NOT NULL DEFAULT 0.00",
         precision: 14,
-        scale: 4,
+        scale: 2,
         nullable: false
       });
       await ensureDecimalColumn({
@@ -419,10 +419,10 @@ exports.createTransaction = async (req, res) => {
   if (quantity != null && quantity < 0) return res.status(400).json({ message: "quantity cannot be negative" });
 
   const computedAmount = price != null && quantity != null && price > 0 && quantity > 0
-    ? roundLineAmount(price * quantity)
+    ? roundAmount(price * quantity)
     : 0;
   const amount = Object.prototype.hasOwnProperty.call(req.body, "amount")
-    ? toNumber(req.body.amount, computedAmount)
+    ? roundAmount(req.body.amount, computedAmount)
     : computedAmount;
   if (amount <= 0) return res.status(400).json({ message: "amount must be greater than zero" });
 
@@ -473,8 +473,8 @@ exports.updateTransaction = async (req, res) => {
     ? (["in", "out"].includes(req.body.type) ? req.body.type : existing.type)
     : existing.type;
   const amount = Object.prototype.hasOwnProperty.call(req.body, "amount")
-    ? toNumber(req.body.amount, 0)
-    : toNumber(existing.amount, 0);
+    ? roundAmount(req.body.amount)
+    : roundAmount(existing.amount);
   if (amount <= 0) return res.status(400).json({ message: "amount must be greater than zero" });
   const price = Object.prototype.hasOwnProperty.call(req.body, "price")
     ? nullableNumber(req.body.price)
@@ -819,7 +819,7 @@ function parseRows(sheet) {
     const rawQty = colQty >= 0 ? row[colQty] : null;
     const qty = Math.max(1, toNumber(rawQty, 1));
 
-    const amount = roundLineAmount(subtotal > 0 ? subtotal : price * qty);
+    const amount = roundAmount(subtotal > 0 ? subtotal : price * qty);
     if (amount <= 0) continue; // no amount -> skip
 
     results.push({

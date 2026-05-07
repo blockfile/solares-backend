@@ -1,0 +1,2 @@
+ALTER TABLE budget_transactions
+  MODIFY COLUMN amount DECIMAL(14,2) NOT NULL DEFAULT 0.00;

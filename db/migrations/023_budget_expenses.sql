@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS budget_transactions (
   id              INT AUTO_INCREMENT PRIMARY KEY,
   account_id      INT           NOT NULL,
   type            ENUM('in','out') NOT NULL,
-  amount          DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+  amount          DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   price           DECIMAL(14,4) NULL,
   quantity        DECIMAL(12,4) NULL,
   description     VARCHAR(500)  NULL,
