@@ -4,6 +4,12 @@ const { describeAuditChange, formatAuditValue, getRequestIp, safeLogAudit } = re
 const { excelSerialToDate, readWorkbookRows } = require("../services/workbookReader");
 
 const ACCOUNT_TYPES = new Set(["income", "expense", "investment", "withdrawal"]);
+const ACCOUNT_TYPE_DIRECTIONS = {
+  income: "in",
+  investment: "in",
+  expense: "out",
+  withdrawal: "out"
+};
 
 function toNumber(value, fallback = 0) {
   if (typeof value === "string") {
@@ -71,6 +77,16 @@ function nullableNumber(value) {
 
 function hasOwn(object, key) {
   return Object.prototype.hasOwnProperty.call(object || {}, key);
+}
+
+function normalizeTransactionDirection(value) {
+  const normalized = String(value || "").toLowerCase();
+  if (normalized === "in" || normalized === "out") return normalized;
+  return ACCOUNT_TYPE_DIRECTIONS[normalized] || null;
+}
+
+function transactionDirectionForAccount(account, fallback = null) {
+  return ACCOUNT_TYPE_DIRECTIONS[String(account?.type || "").toLowerCase()] || fallback;
 }
 
 function transactionLineHasValue(line) {
@@ -433,7 +449,13 @@ exports.listTransactions = async (req, res) => {
 
   if (accountId > 0) { where.push("t.account_id = ?"); params.push(accountId); }
   if (projectId > 0) { where.push("t.project_id = ?"); params.push(projectId); }
-  if (type === "in" || type === "out") { where.push("t.type = ?"); params.push(type); }
+  if (ACCOUNT_TYPES.has(type)) {
+    where.push("a.type = ?");
+    params.push(type);
+  } else if (type === "in" || type === "out") {
+    where.push("t.type = ?");
+    params.push(type);
+  }
   if (dateFrom) { where.push("t.transaction_date >= ?"); params.push(dateFrom); }
   if (dateTo)   { where.push("t.transaction_date <= ?"); params.push(dateTo); }
   if (q) {
@@ -469,7 +491,10 @@ exports.createTransaction = async (req, res) => {
   const accountId = Number(req.body.accountId || 0);
   if (!accountId) return res.status(400).json({ message: "accountId is required" });
 
-  const type = ["in", "out"].includes(req.body.type) ? req.body.type : null;
+  const [accountRows] = await pool.query("SELECT * FROM budget_accounts WHERE id=? LIMIT 1", [accountId]);
+  if (!accountRows.length) return res.status(404).json({ message: "Account not found" });
+
+  const type = transactionDirectionForAccount(accountRows[0], normalizeTransactionDirection(req.body.type));
   if (!type) return res.status(400).json({ message: "type must be 'in' or 'out'" });
 
   const transactionDate = normalizeDate(req.body.transactionDate) || normalizeDate(new Date().toISOString());
@@ -491,9 +516,6 @@ exports.createTransaction = async (req, res) => {
     if (normalized.error) return res.status(400).json({ message: normalized.error });
     lines.push(normalized.value);
   }
-
-  const [accountRows] = await pool.query("SELECT * FROM budget_accounts WHERE id=? LIMIT 1", [accountId]);
-  if (!accountRows.length) return res.status(404).json({ message: "Account not found" });
 
   if (projectId) {
     const [projectRows] = await pool.query("SELECT id FROM customer_projects WHERE id=? LIMIT 1", [projectId]);
@@ -554,9 +576,16 @@ exports.updateTransaction = async (req, res) => {
   const existing = await fetchTransaction(id);
   if (!existing) return res.status(404).json({ message: "Transaction not found" });
 
-  const type = Object.prototype.hasOwnProperty.call(req.body, "type")
-    ? (["in", "out"].includes(req.body.type) ? req.body.type : existing.type)
+  const accountId = Object.prototype.hasOwnProperty.call(req.body, "accountId")
+    ? Number(req.body.accountId || existing.account_id)
+    : existing.account_id;
+  const [accountRows] = await pool.query("SELECT * FROM budget_accounts WHERE id=? LIMIT 1", [accountId]);
+  if (!accountRows.length) return res.status(404).json({ message: "Account not found" });
+
+  const requestedType = Object.prototype.hasOwnProperty.call(req.body, "type")
+    ? normalizeTransactionDirection(req.body.type)
     : existing.type;
+  const type = transactionDirectionForAccount(accountRows[0], requestedType) || existing.type;
   const price = Object.prototype.hasOwnProperty.call(req.body, "price")
     ? nullableNumber(req.body.price)
     : existing.price;
@@ -600,9 +629,6 @@ exports.updateTransaction = async (req, res) => {
   const notes = Object.prototype.hasOwnProperty.call(req.body, "notes")
     ? cleanText(req.body.notes, 4000)
     : existing.notes;
-  const accountId = Object.prototype.hasOwnProperty.call(req.body, "accountId")
-    ? Number(req.body.accountId || existing.account_id)
-    : existing.account_id;
   const projectId = Object.prototype.hasOwnProperty.call(req.body, "projectId")
     ? (Number(req.body.projectId || 0) || null)
     : (Number(existing.project_id || 0) || null);
@@ -952,7 +978,6 @@ exports.importExcel = async (req, res) => {
   }
 
   const accountId = Number(req.body.accountId || 0);
-  const type = ["in", "out"].includes(req.body.type) ? req.body.type : "out";
   const projectId = Number(req.body.projectId || 0) || null;
 
   if (!accountId) {
@@ -965,6 +990,7 @@ exports.importExcel = async (req, res) => {
     if (req.file?.path) fs.unlink(req.file.path, () => {});
     return res.status(404).json({ message: "Account not found." });
   }
+  const type = transactionDirectionForAccount(accountRows[0], normalizeTransactionDirection(req.body.type) || "out");
 
   if (projectId) {
     const [projRows] = await pool.query("SELECT id FROM customer_projects WHERE id=? LIMIT 1", [projectId]);
