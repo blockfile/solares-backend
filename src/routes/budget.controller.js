@@ -1,6 +1,7 @@
 const fs = require("fs");
 const pool = require("../config/db");
 const { describeAuditChange, formatAuditValue, getRequestIp, safeLogAudit } = require("../services/audit");
+const { buildBudgetRawLogsWorkbook } = require("../services/budgetExcelExport");
 const { excelSerialToDate, readWorkbookRows } = require("../services/workbookReader");
 
 const ACCOUNT_TYPES = new Set(["income", "expense", "investment", "withdrawal"]);
@@ -63,6 +64,22 @@ function formatSqlDate(value) {
 
 function formatMoney(value) {
   return toNumber(value, 0);
+}
+
+function sanitizeFilenamePart(value) {
+  return String(value || "")
+    .replace(/[<>:"/\\|?*\u0000-\u001F]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function setDownloadFilename(res, filename) {
+  const safeName = sanitizeFilenamePart(filename).replace(/"/g, "");
+  const fallbackName = safeName || "financial-raw-logs.xlsx";
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(fallbackName)}`
+  );
 }
 
 function roundAmount(value, fallback = 0) {
@@ -291,6 +308,97 @@ async function fetchTransaction(id, connection = pool) {
   return serializeTransaction(rows[0] || null);
 }
 
+function parseTransactionFilters(query = {}, { defaultLimit = 200, maxLimit = 500 } = {}) {
+  const requestedLimit = Number(query.limit || defaultLimit);
+  return {
+    accountId: Number(query.accountId || 0),
+    projectId: Number(query.projectId || 0),
+    type: String(query.type || "").toLowerCase(),
+    dateFrom: normalizeDate(query.dateFrom),
+    dateTo: normalizeDate(query.dateTo),
+    q: String(query.q || "").trim(),
+    limit: Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : defaultLimit, 1), maxLimit)
+  };
+}
+
+function buildTransactionWhere(filters) {
+  const where = [];
+  const params = [];
+
+  if (filters.accountId > 0) { where.push("t.account_id = ?"); params.push(filters.accountId); }
+  if (filters.projectId > 0) { where.push("t.project_id = ?"); params.push(filters.projectId); }
+  if (ACCOUNT_TYPES.has(filters.type)) {
+    where.push("a.type = ?");
+    params.push(filters.type);
+  } else if (filters.type === "in" || filters.type === "out") {
+    where.push("t.type = ?");
+    params.push(filters.type);
+  }
+  if (filters.dateFrom) { where.push("t.transaction_date >= ?"); params.push(filters.dateFrom); }
+  if (filters.dateTo)   { where.push("t.transaction_date <= ?"); params.push(filters.dateTo); }
+  if (filters.q) {
+    const like = `%${filters.q}%`;
+    where.push("(t.description LIKE ? OR t.reference_no LIKE ? OR t.notes LIKE ? OR a.name LIKE ? OR p.project_name LIKE ? OR c.name LIKE ?)");
+    params.push(like, like, like, like, like, like);
+  }
+
+  return { where, params };
+}
+
+async function fetchTransactionRows(filters) {
+  const { where, params } = buildTransactionWhere(filters);
+
+  const [rows] = await pool.query(
+    `SELECT t.*,
+            a.name AS account_name,
+            a.type AS account_type,
+            p.project_name,
+            c.name AS customer_name,
+            u.name AS created_by_name
+       FROM budget_transactions t
+       JOIN budget_accounts a ON a.id = t.account_id
+       LEFT JOIN customer_projects p ON p.id = t.project_id
+       LEFT JOIN customers c ON c.id = p.customer_id
+       LEFT JOIN users u ON u.id = t.created_by
+       ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+      ORDER BY t.transaction_date DESC, t.id DESC
+      LIMIT ${filters.limit}`,
+    params
+  );
+
+  return rows;
+}
+
+async function describeTransactionFilters(filters) {
+  const exportFilters = {
+    type: filters.type,
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+    q: filters.q,
+    limit: filters.limit
+  };
+
+  if (filters.accountId > 0) {
+    const [rows] = await pool.query("SELECT name FROM budget_accounts WHERE id=? LIMIT 1", [filters.accountId]);
+    exportFilters.accountName = rows[0]?.name || `Account #${filters.accountId}`;
+  }
+
+  if (filters.projectId > 0) {
+    const [rows] = await pool.query(
+      `SELECT p.project_name, c.name AS customer_name
+         FROM customer_projects p
+         LEFT JOIN customers c ON c.id = p.customer_id
+        WHERE p.id=?
+        LIMIT 1`,
+      [filters.projectId]
+    );
+    exportFilters.projectName = rows[0]?.project_name || `Project #${filters.projectId}`;
+    exportFilters.customerName = rows[0]?.customer_name || "";
+  }
+
+  return exportFilters;
+}
+
 // ── Accounts ─────────────────────────────────────────────────────────────────
 
 exports.listAccounts = async (req, res) => {
@@ -436,53 +544,38 @@ exports.deleteAccount = async (req, res) => {
 exports.listTransactions = async (req, res) => {
   await ensureImportTrackingSchema();
 
-  const accountId = Number(req.query.accountId || 0);
-  const projectId = Number(req.query.projectId || 0);
-  const type = String(req.query.type || "").toLowerCase();
-  const dateFrom = normalizeDate(req.query.dateFrom);
-  const dateTo = normalizeDate(req.query.dateTo);
-  const q = String(req.query.q || "").trim();
-  const limit = Math.min(Math.max(Number(req.query.limit || 200), 1), 500);
-
-  const where = [];
-  const params = [];
-
-  if (accountId > 0) { where.push("t.account_id = ?"); params.push(accountId); }
-  if (projectId > 0) { where.push("t.project_id = ?"); params.push(projectId); }
-  if (ACCOUNT_TYPES.has(type)) {
-    where.push("a.type = ?");
-    params.push(type);
-  } else if (type === "in" || type === "out") {
-    where.push("t.type = ?");
-    params.push(type);
-  }
-  if (dateFrom) { where.push("t.transaction_date >= ?"); params.push(dateFrom); }
-  if (dateTo)   { where.push("t.transaction_date <= ?"); params.push(dateTo); }
-  if (q) {
-    const like = `%${q}%`;
-    where.push("(t.description LIKE ? OR t.reference_no LIKE ? OR t.notes LIKE ? OR a.name LIKE ?)");
-    params.push(like, like, like, like);
-  }
-
-  const [rows] = await pool.query(
-    `SELECT t.*,
-            a.name AS account_name,
-            a.type AS account_type,
-            p.project_name,
-            c.name AS customer_name,
-            u.name AS created_by_name
-       FROM budget_transactions t
-       JOIN budget_accounts a ON a.id = t.account_id
-       LEFT JOIN customer_projects p ON p.id = t.project_id
-       LEFT JOIN customers c ON c.id = p.customer_id
-       LEFT JOIN users u ON u.id = t.created_by
-       ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-      ORDER BY t.transaction_date DESC, t.id DESC
-      LIMIT ${limit}`,
-    params
-  );
+  const filters = parseTransactionFilters(req.query, { defaultLimit: 200, maxLimit: 500 });
+  const rows = await fetchTransactionRows(filters);
 
   return res.json(rows.map(serializeTransaction));
+};
+
+exports.exportRawLogsExcel = async (req, res) => {
+  await ensureImportTrackingSchema();
+
+  const filters = parseTransactionFilters(req.query, { defaultLimit: 50000, maxLimit: 50000 });
+  const rows = await fetchTransactionRows(filters);
+  const exportFilters = await describeTransactionFilters(filters);
+  const transactions = rows.map(serializeTransaction);
+  const buffer = await buildBudgetRawLogsWorkbook({
+    transactions,
+    filters: exportFilters,
+    exportedBy: req.user.name || req.user.username || ""
+  });
+
+  await safeLogAudit({
+    userId: req.user.id,
+    actorName: req.user.name,
+    module: "BUDGET",
+    action: "RAW_LOGS_EXPORTED",
+    details: `${transactions.length} financial raw log transaction(s) exported to Excel.`,
+    ipAddress: getRequestIp(req)
+  });
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  setDownloadFilename(res, `financial-raw-logs-${stamp}.xlsx`);
+  res.send(buffer);
 };
 
 exports.createTransaction = async (req, res) => {

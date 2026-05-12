@@ -1,4 +1,5 @@
 const ExcelJS = require("exceljs");
+const { addLogoToWorksheet } = require("./exportBranding");
 
 const SECTION_DEFS = [
   { key: "main_system", label: "A. Main System Components" },
@@ -187,7 +188,7 @@ async function addTemplateWorksheet(
 ) {
   const effectiveVatMode = normalizeVatMode(vatMode);
   const worksheet = workbook.addWorksheet(makeUniqueSheetName(workbook, sheetName || inferSheetLabel(template.name)), {
-    views: [{ state: "frozen", ySplit: 6 }]
+    views: [{ state: "frozen", ySplit: 8 }]
   });
 
   worksheet.columns = [
@@ -292,22 +293,23 @@ async function addTemplateWorksheet(
     numFmt: '[Green]#,##0.00;[Red]-#,##0.00;0.00'
   };
 
-  worksheet.mergeCells("A1:F1");
-  worksheet.getCell("A1").value = "Template Costing Workbook";
-  applyCellStyle(worksheet.getCell("A1"), titleStyle);
+  worksheet.getRow(1).height = 26;
+  worksheet.getRow(2).height = 22;
+  worksheet.getRow(3).height = 20;
+  addLogoToWorksheet(workbook, worksheet, { col: 0.1, row: 0.1, width: 62, height: 62 });
 
-  worksheet.mergeCells("A2:F2");
-  worksheet.getCell("A2").value = template.name || "Template";
-  applyCellStyle(worksheet.getCell("A2"), subtitleStyle);
+  worksheet.mergeCells("B1:F1");
+  worksheet.getCell("B1").value = "Template Costing Workbook";
+  applyCellStyle(worksheet.getCell("B1"), titleStyle);
 
-  worksheet.mergeCells("A3:C3");
-  worksheet.getCell("A3").value = `Generated: ${formatTimestamp()}`;
-  applyCellStyle(worksheet.getCell("A3"), infoStyle);
+  worksheet.mergeCells("B2:F2");
+  worksheet.getCell("B2").value = template.name || "Template";
+  applyCellStyle(worksheet.getCell("B2"), subtitleStyle);
 
-  worksheet.mergeCells("D3:F3");
-  worksheet.getCell("D3").value = "Yellow cells are editable. Revenue formulas update automatically in Excel.";
-  applyCellStyle(worksheet.getCell("D3"), infoStyle);
-  worksheet.getCell("D3").alignment = { horizontal: "right", vertical: "middle" };
+  worksheet.mergeCells("B3:F3");
+  worksheet.getCell("B3").value = `Generated: ${formatTimestamp()} | Yellow cells are editable. Revenue formulas update automatically in Excel.`;
+  applyCellStyle(worksheet.getCell("B3"), infoStyle);
+  worksheet.getCell("B3").alignment = { horizontal: "left", vertical: "middle" };
 
   worksheet.mergeCells("A4:F4");
   worksheet.getCell("A4").value = effectiveVatMode === "incl"

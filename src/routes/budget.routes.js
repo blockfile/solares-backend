@@ -80,6 +80,7 @@ router.delete("/bulk",         auth, requireModule("budget"), c.bulkDeleteTransa
 // ─────────────────────────────────────────────
 // Transactions CRUD
 // ─────────────────────────────────────────────
+router.get("/export/raw-logs", auth, requireModule("budget"), c.exportRawLogsExcel);
 router.get("/",                auth, requireModule("budget"), c.listTransactions);
 router.post("/",               auth, requireModule("budget"), c.createTransaction);
 

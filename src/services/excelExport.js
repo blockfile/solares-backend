@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
 const PDFDocument = require("pdfkit");
+const { addLogoToWorksheet, drawLogoOnPdf } = require("./exportBranding");
 
 function cloneStyle(style) {
   return JSON.parse(JSON.stringify(style || {}));
@@ -542,6 +543,9 @@ async function buildFromTemplate({ quote, items, vatMode = "incl" }) {
   await wb.xlsx.readFile(templatePath);
   const ws = wb.getWorksheet("Sheet1") || wb.worksheets[0];
   if (!ws) throw new Error("Template workbook has no worksheet.");
+  if (!ws.getImages().length) {
+    addLogoToWorksheet(wb, ws, { col: 0.15, row: 0.15, width: 66, height: 66 });
+  }
 
   ws.getCell("A10").value = `Customer Name: ${quote.customer_name || ""}`;
   ws.getCell("F10").value = quote.quote_ref || "";
@@ -696,20 +700,39 @@ async function buildBasic({ quote, items, vatMode = "incl" }) {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Quotation");
 
-  ws.getCell("A1").value = "Quotation";
-  ws.getCell("A3").value = "Customer Name:";
-  ws.getCell("B3").value = quote.customer_name;
-  ws.getCell("D3").value = "Quotation Ref:";
-  ws.getCell("E3").value = quote.quote_ref;
-  ws.getCell("D4").value = "Date:";
-  ws.getCell("E4").value = String(quote.quote_date);
-  ws.getCell("D5").value = "Valid Until:";
-  ws.getCell("E5").value = String(quote.valid_until);
+  ws.columns = [
+    { key: "itemNo", width: 10 },
+    { key: "description", width: 48 },
+    { key: "qty", width: 12 },
+    { key: "unitPrice", width: 16 },
+    { key: "lineTotal", width: 16 }
+  ];
+  ws.getRow(1).height = 28;
+  ws.getRow(2).height = 22;
+  ws.getRow(3).height = 18;
+  addLogoToWorksheet(wb, ws, { col: 0.1, row: 0.1, width: 62, height: 62 });
 
-  ws.getRow(7).values = ["ITEM", "ITEM", "QTY", "U.P PESO", "T.P PESO"];
+  ws.mergeCells("B1:E1");
+  ws.getCell("B1").value = "SOLARES Energy Solutions";
+  ws.getCell("B1").font = { bold: true, size: 18, color: { argb: "FF17365D" } };
+  ws.mergeCells("B2:E2");
+  ws.getCell("B2").value = "Customer Quotation";
+  ws.getCell("B2").font = { bold: true, size: 12, color: { argb: "FF1F4E78" } };
+
+  ws.getCell("A4").value = "Customer Name:";
+  ws.getCell("B4").value = quote.customer_name;
+  ws.getCell("D4").value = "Quotation Ref:";
+  ws.getCell("E4").value = quote.quote_ref;
+  ws.getCell("D5").value = "Date:";
+  ws.getCell("E5").value = String(quote.quote_date);
+  ws.getCell("D6").value = "Valid Until:";
+  ws.getCell("E6").value = String(quote.valid_until);
+
+  ws.getRow(8).values = ["ITEM", "ITEM", "QTY", "U.P PESO", "T.P PESO"];
+  ws.getRow(8).font = { bold: true };
   const exportItems = summarizeForExport(quote, items);
 
-  let r = 8;
+  let r = 9;
   for (const it of exportItems) {
     ws.getCell(`A${r}`).value = it.itemNo;
     ws.getCell(`B${r}`).value = it.description;
@@ -741,29 +764,37 @@ async function buildCompanyBasic({ quote, items, vatMode = "incl" }) {
   const ws = wb.addWorksheet("Company Quotation");
 
   ws.columns = [
-    { header: "ITEM", key: "itemNo", width: 8 },
-    { header: "DESCRIPTION", key: "description", width: 44 },
-    { header: "QTY", key: "qtyDisplay", width: 10 },
-    { header: "U.P. PHP", key: "unitPrice", width: 16 },
-    { header: "T.P. PHP", key: "lineTotal", width: 16 }
+    { key: "itemNo", width: 10 },
+    { key: "description", width: 48 },
+    { key: "qtyDisplay", width: 12 },
+    { key: "unitPrice", width: 16 },
+    { key: "lineTotal", width: 16 }
   ];
 
-  ws.mergeCells("A1:E1");
-  ws.getCell("A1").value = "Company Quotation (Internal)";
-  ws.getCell("A1").font = { bold: true, size: 16 };
+  ws.getRow(1).height = 28;
+  ws.getRow(2).height = 22;
+  ws.getRow(3).height = 18;
+  addLogoToWorksheet(wb, ws, { col: 0.1, row: 0.1, width: 62, height: 62 });
 
-  ws.getCell("A3").value = "Customer Name";
-  ws.getCell("B3").value = quote.customer_name || "";
-  ws.getCell("D3").value = "Quotation Ref";
-  ws.getCell("E3").value = quote.quote_ref || "";
+  ws.mergeCells("B1:E1");
+  ws.getCell("B1").value = "SOLARES Energy Solutions";
+  ws.getCell("B1").font = { bold: true, size: 18, color: { argb: "FF17365D" } };
+  ws.mergeCells("B2:E2");
+  ws.getCell("B2").value = "Company Quotation (Internal)";
+  ws.getCell("B2").font = { bold: true, size: 12, color: { argb: "FF1F4E78" } };
 
-  ws.getCell("A4").value = "Quote Date";
-  ws.getCell("B4").value = formatDateForDoc(quote.quote_date);
-  ws.getCell("D4").value = "Valid Until";
-  ws.getCell("E4").value = formatDateForDoc(quote.valid_until);
+  ws.getCell("A4").value = "Customer Name";
+  ws.getCell("B4").value = quote.customer_name || "";
+  ws.getCell("D4").value = "Quotation Ref";
+  ws.getCell("E4").value = quote.quote_ref || "";
+
+  ws.getCell("A5").value = "Quote Date";
+  ws.getCell("B5").value = formatDateForDoc(quote.quote_date);
+  ws.getCell("D5").value = "Valid Until";
+  ws.getCell("E5").value = formatDateForDoc(quote.valid_until);
 
   const lines = summarizeForCompany(items);
-  let row = 7;
+  let row = 8;
   ws.getRow(row).values = ["ITEM", "ITEM", "QTY", "U.P. PHP", "T.P. PHP"];
   ws.getRow(row).font = { bold: true };
 
@@ -834,10 +865,10 @@ async function buildCustomerPdf({ quote, items }) {
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    doc.fontSize(20).font("Helvetica-Bold").text("SOLARES Energy Solutions");
-    doc.moveDown(0.25);
-    doc.fontSize(10).font("Helvetica").text("Customer Quotation");
-    doc.moveDown(0.6);
+    drawLogoOnPdf(doc, { x: 40, y: 36, width: 58, height: 58 });
+    doc.fontSize(20).font("Helvetica-Bold").text("SOLARES Energy Solutions", 112, 42);
+    doc.fontSize(10).font("Helvetica").text("Customer Quotation", 112, 67);
+    doc.y = 108;
     doc.fontSize(10).text(`Customer Name: ${quote.customer_name || ""}`);
     doc.text(`Quotation Ref: ${quote.quote_ref || ""}`);
     doc.text(`Date: ${formatDateForDoc(quote.quote_date)}`);
