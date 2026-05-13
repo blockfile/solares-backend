@@ -490,7 +490,12 @@ function execFileAsync(command, args, options) {
     execFile(command, args, options, (error, stdout, stderr) => {
       if (error) {
         const reason = String(stderr || stdout || error.message || "Import command failed").trim();
-        reject(new Error(reason));
+        const wrapped = new Error(reason);
+        wrapped.code = error.code;
+        wrapped.errno = error.errno;
+        wrapped.path = error.path;
+        wrapped.spawnargs = error.spawnargs;
+        reject(wrapped);
         return;
       }
       resolve({ stdout, stderr });
@@ -498,8 +503,42 @@ function execFileAsync(command, args, options) {
   });
 }
 
+function getPythonCandidates() {
+  if (process.env.PYTHON_BIN) {
+    return [{ command: process.env.PYTHON_BIN, args: [] }];
+  }
+
+  if (process.platform === "win32") {
+    return [
+      { command: "python", args: [] },
+      { command: "py", args: ["-3"] },
+      { command: "python3", args: [] }
+    ];
+  }
+
+  return [
+    { command: "python3", args: [] },
+    { command: "python", args: [] }
+  ];
+}
+
+function isMissingExecutable(error) {
+  return error?.code === "ENOENT" || /\bENOENT\b/i.test(String(error?.message || ""));
+}
+
+function formatPdfParserError(error) {
+  const message = String(error?.message || "").trim();
+
+  if (/No module named ['"]?pypdf['"]?/i.test(message)) {
+    return new Error(
+      "The PDF price-list parser needs the Python package pypdf. Install it on the backend server, then try the import again."
+    );
+  }
+
+  return new Error(`The PDF price-list parser failed: ${message || "Unknown parser error."}`);
+}
+
 async function parsePdfPriceList(filePath) {
-  const pythonBin = process.env.PYTHON_BIN || "python";
   const scriptPath = path.join(__dirname, "../../scripts/extract-price-list-pdf.py");
   const outputPath = path.join(
     os.tmpdir(),
@@ -507,10 +546,31 @@ async function parsePdfPriceList(filePath) {
   );
 
   try {
-    await execFileAsync(pythonBin, [scriptPath, filePath, outputPath], {
-      cwd: path.join(__dirname, "../.."),
-      maxBuffer: 10 * 1024 * 1024
-    });
+    let missingPython = false;
+    for (const candidate of getPythonCandidates()) {
+      try {
+        await execFileAsync(candidate.command, [...candidate.args, scriptPath, filePath, outputPath], {
+          cwd: path.join(__dirname, "../.."),
+          maxBuffer: 10 * 1024 * 1024
+        });
+        missingPython = false;
+        break;
+      } catch (error) {
+        if (isMissingExecutable(error)) {
+          missingPython = true;
+          continue;
+        }
+        throw formatPdfParserError(error);
+      }
+    }
+
+    if (missingPython) {
+      const configured = process.env.PYTHON_BIN ? ` "${process.env.PYTHON_BIN}"` : "";
+      throw new Error(
+        `Python 3${configured} was not found on the backend server. Install Python 3 or set PYTHON_BIN to the Python executable path.`
+      );
+    }
+
     return parseJsonPriceList(outputPath);
   } finally {
     try {
