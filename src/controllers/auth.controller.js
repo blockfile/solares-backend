@@ -5,6 +5,7 @@ const { getJwtExpiresIn, getRequiredJwtSecret } = require("../config/security");
 const {
   SYSTEM_ROLE_KEYS,
   defaultModulesForRole,
+  getAllModuleKeys,
   normalizeRoleKey,
   parseModulesJson,
   roleLabel
@@ -24,7 +25,10 @@ function serializeUser(user) {
 
   const role = normalizeRoleKey(user.role);
   const status = String(user.status || "active").toLowerCase() === "inactive" ? "inactive" : "active";
-  const permissions = parseModulesJson(user.permissions ?? user.modules_json, defaultModulesForRole(role));
+  const permissions =
+    role === SYSTEM_ROLE_KEYS.ADMIN
+      ? getAllModuleKeys()
+      : parseModulesJson(user.permissions ?? user.modules_json, defaultModulesForRole(role));
   const mustChangePassword = Number(user.must_change_password || 0) === 1;
 
   return {

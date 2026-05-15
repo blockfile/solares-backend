@@ -58,6 +58,11 @@ const MODULE_DEFINITIONS = [
     key: "budget",
     label: "Financial Management",
     description: "Track income and expenses, manage accounts, and monitor cash flow."
+  },
+  {
+    key: "accounting",
+    label: "Accounting Management",
+    description: "Manage accounting categories and account setup."
   }
 ];
 

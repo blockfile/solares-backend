@@ -57,12 +57,12 @@ function uploadExcel(req, res, next) {
 // ─────────────────────────────────────────────
 // Budget Summary + Accounts
 // ─────────────────────────────────────────────
-router.get("/summary",         auth, requireModule("budget"), c.summary);
+router.get("/summary",         auth, requireModule("budget", "accounting"), c.summary);
 
-router.get("/accounts",        auth, requireModule("budget"), c.listAccounts);
-router.post("/accounts",       auth, requireModule("budget"), c.createAccount);
-router.put("/accounts/:id",    auth, requireModule("budget"), c.updateAccount);
-router.delete("/accounts/:id", auth, requireModule("budget"), c.deleteAccount);
+router.get("/accounts",        auth, requireModule("budget", "accounting"), c.listAccounts);
+router.post("/accounts",       auth, requireModule("budget", "accounting"), c.createAccount);
+router.put("/accounts/:id",    auth, requireModule("budget", "accounting"), c.updateAccount);
+router.delete("/accounts/:id", auth, requireModule("budget", "accounting"), c.deleteAccount);
 
 // ─────────────────────────────────────────────
 // Import + Bulk Actions
