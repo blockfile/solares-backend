@@ -342,6 +342,7 @@ function serializeBookkeepingEntry(row) {
   return {
     id: row.id,
     section: row.section,
+    pr_code: row.pr_code || "",
     entry_date: formatSqlDate(row.entry_date),
     description: row.description || "",
     debit: row.debit == null ? null : formatMoney(row.debit),
@@ -353,6 +354,7 @@ function serializeBookkeepingEntry(row) {
     supplier: row.supplier || "",
     amount_due: row.amount_due == null ? null : formatMoney(row.amount_due),
     due_date: formatSqlDate(row.due_date),
+    note: row.note || "",
     created_by: row.created_by,
     created_by_name: row.created_by_name || "",
     created_at: row.created_at,
@@ -1019,6 +1021,7 @@ exports.createBookkeepingEntry = async (req, res) => {
   if (!section) return res.status(400).json({ message: "Invalid bookkeeping section." });
 
   const values = {
+    prCode: cleanText(req.body.prCode ?? req.body.pr_code, 100),
     entryDate: null,
     description: null,
     debit: null,
@@ -1029,7 +1032,8 @@ exports.createBookkeepingEntry = async (req, res) => {
     remaining: null,
     supplier: null,
     amountDue: null,
-    dueDate: null
+    dueDate: null,
+    note: cleanText(req.body.note ?? req.body.notes, 1000)
   };
 
   if (section === "sales" || section === "expense") {
@@ -1078,10 +1082,11 @@ exports.createBookkeepingEntry = async (req, res) => {
 
   const [result] = await pool.query(
     `INSERT INTO budget_bookkeeping_entries
-       (section, entry_date, description, debit, credit, client, total, paid, remaining, supplier, amount_due, due_date, created_by)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       (section, pr_code, entry_date, description, debit, credit, client, total, paid, remaining, supplier, amount_due, due_date, note, created_by)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       section,
+      values.prCode,
       values.entryDate,
       values.description,
       values.debit,
@@ -1093,6 +1098,7 @@ exports.createBookkeepingEntry = async (req, res) => {
       values.supplier,
       values.amountDue,
       values.dueDate,
+      values.note,
       req.user.id
     ]
   );
