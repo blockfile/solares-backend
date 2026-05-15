@@ -11,6 +11,13 @@ const ACCOUNT_TYPE_DIRECTIONS = {
   expense: "out",
   withdrawal: "out"
 };
+const BOOKKEEPING_SECTIONS = new Set(["sales", "expense", "accounts_receivable", "accounts_payable"]);
+const BOOKKEEPING_SECTION_LABELS = {
+  sales: "Sales",
+  expense: "Expense",
+  accounts_receivable: "Accounts Receivable",
+  accounts_payable: "Accounts Payable"
+};
 
 function toNumber(value, fallback = 0) {
   if (typeof value === "string") {
@@ -100,6 +107,15 @@ function normalizeTransactionDirection(value) {
   const normalized = String(value || "").toLowerCase();
   if (normalized === "in" || normalized === "out") return normalized;
   return ACCOUNT_TYPE_DIRECTIONS[normalized] || null;
+}
+
+function normalizeBookkeepingSection(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return BOOKKEEPING_SECTIONS.has(normalized) ? normalized : "";
 }
 
 function transactionDirectionForAccount(account, fallback = null) {
@@ -318,6 +334,29 @@ function parseTransactionFilters(query = {}, { defaultLimit = 200, maxLimit = 50
     dateTo: normalizeDate(query.dateTo),
     q: String(query.q || "").trim(),
     limit: Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : defaultLimit, 1), maxLimit)
+  };
+}
+
+function serializeBookkeepingEntry(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    section: row.section,
+    entry_date: formatSqlDate(row.entry_date),
+    description: row.description || "",
+    debit: row.debit == null ? null : formatMoney(row.debit),
+    credit: row.credit == null ? null : formatMoney(row.credit),
+    client: row.client || "",
+    total: row.total == null ? null : formatMoney(row.total),
+    paid: row.paid == null ? null : formatMoney(row.paid),
+    remaining: row.remaining == null ? null : formatMoney(row.remaining),
+    supplier: row.supplier || "",
+    amount_due: row.amount_due == null ? null : formatMoney(row.amount_due),
+    due_date: formatSqlDate(row.due_date),
+    created_by: row.created_by,
+    created_by_name: row.created_by_name || "",
+    created_at: row.created_at,
+    updated_at: row.updated_at
   };
 }
 
@@ -945,6 +984,166 @@ exports.summary = async (req, res) => {
 };
 
 // ── Excel Import ──────────────────────────────────────────────────────────────
+
+// Bookkeeping
+
+exports.listBookkeeping = async (_req, res) => {
+  const [rows] = await pool.query(
+    `SELECT b.*,
+            u.name AS created_by_name
+       FROM budget_bookkeeping_entries b
+       LEFT JOIN users u ON u.id = b.created_by
+      ORDER BY FIELD(b.section, 'sales', 'expense', 'accounts_receivable', 'accounts_payable'),
+               COALESCE(b.entry_date, b.due_date, DATE(b.created_at)) DESC,
+               b.id DESC
+      LIMIT 500`
+  );
+
+  const grouped = {
+    sales: [],
+    expense: [],
+    accounts_receivable: [],
+    accounts_payable: []
+  };
+
+  for (const row of rows) {
+    const entry = serializeBookkeepingEntry(row);
+    if (grouped[entry.section]) grouped[entry.section].push(entry);
+  }
+
+  return res.json(grouped);
+};
+
+exports.createBookkeepingEntry = async (req, res) => {
+  const section = normalizeBookkeepingSection(req.params.section);
+  if (!section) return res.status(400).json({ message: "Invalid bookkeeping section." });
+
+  const values = {
+    entryDate: null,
+    description: null,
+    debit: null,
+    credit: null,
+    client: null,
+    total: null,
+    paid: null,
+    remaining: null,
+    supplier: null,
+    amountDue: null,
+    dueDate: null
+  };
+
+  if (section === "sales" || section === "expense") {
+    values.entryDate = normalizeDate(req.body.date || req.body.entryDate);
+    values.description = cleanText(req.body.description, 500);
+    values.debit = nullableNumber(req.body.debit);
+    values.credit = nullableNumber(req.body.credit);
+
+    if (!values.entryDate) return res.status(400).json({ message: "Date is required." });
+    if (!values.description) return res.status(400).json({ message: "Description is required." });
+    if (values.debit == null && values.credit == null) return res.status(400).json({ message: "Enter debit or credit." });
+    if ((values.debit != null && values.debit < 0) || (values.credit != null && values.credit < 0)) {
+      return res.status(400).json({ message: "Debit and credit cannot be negative." });
+    }
+    values.debit = values.debit == null ? 0 : roundAmount(values.debit);
+    values.credit = values.credit == null ? 0 : roundAmount(values.credit);
+  }
+
+  if (section === "accounts_receivable") {
+    values.client = cleanText(req.body.client, 160);
+    values.total = nullableNumber(req.body.total);
+    values.paid = nullableNumber(req.body.paid);
+    values.remaining = nullableNumber(req.body.remaining);
+
+    if (!values.client) return res.status(400).json({ message: "Client is required." });
+    if (values.total == null || values.total < 0) return res.status(400).json({ message: "Total must be zero or greater." });
+    if (values.paid != null && values.paid < 0) return res.status(400).json({ message: "Paid cannot be negative." });
+    if (values.remaining != null && values.remaining < 0) return res.status(400).json({ message: "Remaining cannot be negative." });
+
+    values.total = roundAmount(values.total);
+    values.paid = values.paid == null ? 0 : roundAmount(values.paid);
+    values.remaining = values.remaining == null ? Math.max(0, roundAmount(values.total - values.paid)) : roundAmount(values.remaining);
+  }
+
+  if (section === "accounts_payable") {
+    values.supplier = cleanText(req.body.supplier, 160);
+    values.amountDue = nullableNumber(req.body.amountDue ?? req.body.amount_due);
+    values.dueDate = normalizeDate(req.body.dueDate || req.body.due_date);
+
+    if (!values.supplier) return res.status(400).json({ message: "Supplier is required." });
+    if (values.amountDue == null || values.amountDue < 0) return res.status(400).json({ message: "Amount due must be zero or greater." });
+    if (!values.dueDate) return res.status(400).json({ message: "Due date is required." });
+
+    values.amountDue = roundAmount(values.amountDue);
+  }
+
+  const [result] = await pool.query(
+    `INSERT INTO budget_bookkeeping_entries
+       (section, entry_date, description, debit, credit, client, total, paid, remaining, supplier, amount_due, due_date, created_by)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [
+      section,
+      values.entryDate,
+      values.description,
+      values.debit,
+      values.credit,
+      values.client,
+      values.total,
+      values.paid,
+      values.remaining,
+      values.supplier,
+      values.amountDue,
+      values.dueDate,
+      req.user.id
+    ]
+  );
+
+  const [rows] = await pool.query(
+    `SELECT b.*,
+            u.name AS created_by_name
+       FROM budget_bookkeeping_entries b
+       LEFT JOIN users u ON u.id = b.created_by
+      WHERE b.id=?
+      LIMIT 1`,
+    [result.insertId]
+  );
+  const created = serializeBookkeepingEntry(rows[0]);
+
+  await safeLogAudit({
+    userId: req.user.id,
+    actorName: req.user.name,
+    module: "BUDGET",
+    action: "BOOKKEEPING_CREATED",
+    details: `${BOOKKEEPING_SECTION_LABELS[section]} bookkeeping entry created.`,
+    ipAddress: getRequestIp(req)
+  });
+
+  return res.status(201).json(created);
+};
+
+exports.deleteBookkeepingEntry = async (req, res) => {
+  const section = normalizeBookkeepingSection(req.params.section);
+  const id = Number(req.params.id || 0);
+  if (!section || !id) return res.status(400).json({ message: "Invalid bookkeeping entry." });
+
+  const [rows] = await pool.query(
+    "SELECT id FROM budget_bookkeeping_entries WHERE id=? AND section=? LIMIT 1",
+    [id, section]
+  );
+  if (!rows.length) return res.status(404).json({ message: "Bookkeeping entry not found." });
+
+  await pool.query("DELETE FROM budget_bookkeeping_entries WHERE id=? AND section=?", [id, section]);
+
+  await safeLogAudit({
+    userId: req.user.id,
+    actorName: req.user.name,
+    module: "BUDGET",
+    action: "BOOKKEEPING_DELETED",
+    details: `${BOOKKEEPING_SECTION_LABELS[section]} bookkeeping entry deleted.`,
+    ipAddress: getRequestIp(req)
+  });
+
+  return res.json({ success: true, deleted: 1, id });
+};
 
 function parseExcelDate(value) {
   if (!value && value !== 0) return null;

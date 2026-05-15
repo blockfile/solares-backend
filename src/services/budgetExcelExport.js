@@ -173,7 +173,7 @@ async function buildBudgetRawLogsWorkbook({ transactions = [], filters = {}, exp
   worksheet.getCell("B1").alignment = { horizontal: "left", vertical: "middle" };
 
   worksheet.mergeCells("B2:R2");
-  worksheet.getCell("B2").value = "Financial Management - Raw Logs Export";
+  worksheet.getCell("B2").value = "Financial & Accounting Management - Raw Logs Export";
   worksheet.getCell("B2").font = { bold: true, size: 13, color: { argb: COLORS.blue } };
   worksheet.getCell("B2").alignment = { horizontal: "left", vertical: "middle" };
 

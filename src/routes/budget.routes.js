@@ -57,12 +57,12 @@ function uploadExcel(req, res, next) {
 // ─────────────────────────────────────────────
 // Budget Summary + Accounts
 // ─────────────────────────────────────────────
-router.get("/summary",         auth, requireModule("budget", "accounting"), c.summary);
+router.get("/summary",         auth, requireModule("budget"), c.summary);
 
-router.get("/accounts",        auth, requireModule("budget", "accounting"), c.listAccounts);
-router.post("/accounts",       auth, requireModule("budget", "accounting"), c.createAccount);
-router.put("/accounts/:id",    auth, requireModule("budget", "accounting"), c.updateAccount);
-router.delete("/accounts/:id", auth, requireModule("budget", "accounting"), c.deleteAccount);
+router.get("/accounts",        auth, requireModule("budget"), c.listAccounts);
+router.post("/accounts",       auth, requireModule("budget"), c.createAccount);
+router.put("/accounts/:id",    auth, requireModule("budget"), c.updateAccount);
+router.delete("/accounts/:id", auth, requireModule("budget"), c.deleteAccount);
 
 // ─────────────────────────────────────────────
 // Import + Bulk Actions
@@ -76,6 +76,11 @@ router.put("/bulk/project",    auth, requireModule("budget"), c.bulkAssignProjec
 
 // ✅ NEW: BULK DELETE (IMPORTANT)
 router.delete("/bulk",         auth, requireModule("budget"), c.bulkDeleteTransactions);
+
+// Bookkeeping
+router.get("/bookkeeping",                 auth, requireModule("budget"), c.listBookkeeping);
+router.post("/bookkeeping/:section",       auth, requireModule("budget"), c.createBookkeepingEntry);
+router.delete("/bookkeeping/:section/:id", auth, requireModule("budget"), c.deleteBookkeepingEntry);
 
 // ─────────────────────────────────────────────
 // Transactions CRUD

@@ -4,7 +4,6 @@ const { getRequiredJwtSecret } = require("../config/security");
 const {
   SYSTEM_ROLE_KEYS,
   defaultModulesForRole,
-  getAllModuleKeys,
   normalizeRoleKey,
   parseModulesJson,
   roleLabel
@@ -67,9 +66,7 @@ module.exports = async function auth(req, res, next) {
       role: roleKey,
       roleLabel: roleLabel(roleKey, user.role_name),
       status: "active",
-      permissions: roleKey === SYSTEM_ROLE_KEYS.ADMIN
-        ? getAllModuleKeys()
-        : parseModulesJson(user.modules_json, defaultModulesForRole(roleKey)),
+      permissions: parseModulesJson(user.modules_json, defaultModulesForRole(roleKey)),
       must_change_password: Number(user.must_change_password || 0) === 1 ? 1 : 0
     };
     return next();
