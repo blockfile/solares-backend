@@ -378,7 +378,7 @@ function serializeBookkeepingEntry(row) {
     debit: row.debit == null ? null : formatMoney(row.debit),
     credit: row.credit == null ? null : formatMoney(row.credit),
     client: row.client || "",
-    amount: row.total == null ? null : formatMoney(row.total),
+    amount: row.total == null && row.amount_due == null ? null : formatMoney(row.total ?? row.amount_due),
     total: row.total == null ? null : formatMoney(row.total),
     paid: row.paid == null ? null : formatMoney(row.paid),
     remaining: row.remaining == null ? null : formatMoney(row.remaining),
@@ -1090,7 +1090,7 @@ exports.createBookkeepingEntry = async (req, res) => {
     values.credit = values.credit == null ? 0 : roundAmount(values.credit);
   }
 
-  if (section === "accounts_receivable") {
+  if (section === "accounts_receivable" || section === "accounts_payable") {
     values.entryDate = normalizeDate(req.body.date || req.body.entryDate);
     values.client = cleanText(req.body.customer ?? req.body.client, 160);
     values.invoiceNo = cleanText(req.body.invoiceNo ?? req.body.invoice_no, 100);
@@ -1104,18 +1104,6 @@ exports.createBookkeepingEntry = async (req, res) => {
     if (values.total == null || values.total < 0) return res.status(400).json({ message: "Amount must be zero or greater." });
 
     values.total = roundAmount(values.total);
-  }
-
-  if (section === "accounts_payable") {
-    values.supplier = cleanText(req.body.supplier, 160);
-    values.amountDue = nullableNumber(req.body.amountDue ?? req.body.amount_due);
-    values.dueDate = normalizeDate(req.body.dueDate || req.body.due_date);
-
-    if (!values.supplier) return res.status(400).json({ message: "Supplier is required." });
-    if (values.amountDue == null || values.amountDue < 0) return res.status(400).json({ message: "Amount due must be zero or greater." });
-    if (!values.dueDate) return res.status(400).json({ message: "Due date is required." });
-
-    values.amountDue = roundAmount(values.amountDue);
   }
 
   const [result] = await pool.query(
