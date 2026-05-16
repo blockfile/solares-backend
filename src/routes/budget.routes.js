@@ -80,6 +80,7 @@ router.delete("/bulk",         auth, requireModule("budget"), c.bulkDeleteTransa
 // Bookkeeping
 router.get("/bookkeeping",                 auth, requireModule("budget"), c.listBookkeeping);
 router.post("/bookkeeping/:section",       auth, requireModule("budget"), c.createBookkeepingEntry);
+router.put("/bookkeeping/:section/:id",    auth, requireModule("budget"), c.updateBookkeepingEntry);
 router.delete("/bookkeeping/:section/:id", auth, requireModule("budget"), c.deleteBookkeepingEntry);
 
 // ─────────────────────────────────────────────

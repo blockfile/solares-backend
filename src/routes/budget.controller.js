@@ -1026,11 +1026,11 @@ exports.listBookkeeping = async (_req, res) => {
   const [rows] = await pool.query(
     `SELECT b.*,
             u.name AS created_by_name
-       FROM budget_bookkeeping_entries b
+      FROM budget_bookkeeping_entries b
        LEFT JOIN users u ON u.id = b.created_by
       ORDER BY FIELD(b.section, 'sales', 'expense', 'accounts_receivable', 'accounts_payable'),
-               COALESCE(b.entry_date, b.due_date, DATE(b.created_at)) DESC,
-               b.id DESC
+               COALESCE(b.entry_date, b.due_date, DATE(b.created_at)) ASC,
+               b.id ASC
       LIMIT 500`
   );
 
@@ -1153,6 +1153,120 @@ exports.createBookkeepingEntry = async (req, res) => {
   });
 
   return res.status(201).json(created);
+};
+
+exports.updateBookkeepingEntry = async (req, res) => {
+  await ensureBookkeepingSchema();
+
+  const section = normalizeBookkeepingSection(req.params.section);
+  const id = Number(req.params.id || 0);
+  if (!section || !id) return res.status(400).json({ message: "Invalid bookkeeping entry." });
+
+  const [existingRows] = await pool.query(
+    "SELECT id FROM budget_bookkeeping_entries WHERE id=? AND section=? LIMIT 1",
+    [id, section]
+  );
+  if (!existingRows.length) return res.status(404).json({ message: "Bookkeeping entry not found." });
+
+  const values = {
+    prCode: cleanText(req.body.prCode ?? req.body.pr_code, 100),
+    entryDate: null,
+    description: null,
+    invoiceNo: null,
+    modeOfPayment: null,
+    referenceNo: null,
+    debit: null,
+    credit: null,
+    client: null,
+    total: null,
+    paid: null,
+    remaining: null,
+    supplier: null,
+    amountDue: null,
+    dueDate: null,
+    note: cleanText(req.body.note ?? req.body.notes, 1000)
+  };
+
+  if (section === "sales" || section === "expense") {
+    values.entryDate = normalizeDate(req.body.date || req.body.entryDate);
+    values.description = cleanText(req.body.description, 500);
+    values.debit = nullableNumber(req.body.debit);
+    values.credit = nullableNumber(req.body.credit);
+
+    if (!values.entryDate) return res.status(400).json({ message: "Date is required." });
+    if (!values.description) return res.status(400).json({ message: "Description is required." });
+    if (values.debit == null && values.credit == null) return res.status(400).json({ message: "Enter debit or credit." });
+    if ((values.debit != null && values.debit < 0) || (values.credit != null && values.credit < 0)) {
+      return res.status(400).json({ message: "Debit and credit cannot be negative." });
+    }
+    values.debit = values.debit == null ? 0 : roundAmount(values.debit);
+    values.credit = values.credit == null ? 0 : roundAmount(values.credit);
+  }
+
+  if (section === "accounts_receivable" || section === "accounts_payable") {
+    values.entryDate = normalizeDate(req.body.date || req.body.entryDate);
+    values.client = cleanText(req.body.customer ?? req.body.client, 160);
+    values.invoiceNo = cleanText(req.body.invoiceNo ?? req.body.invoice_no, 100);
+    values.description = cleanText(req.body.description, 500);
+    values.modeOfPayment = cleanText(req.body.modeOfPayment ?? req.body.mode_of_payment, 100);
+    values.total = nullableNumber(req.body.amount ?? req.body.total);
+    values.referenceNo = cleanText(req.body.reference ?? req.body.referenceNo ?? req.body.reference_no, 100);
+
+    if (!values.entryDate) return res.status(400).json({ message: "Date is required." });
+    if (!values.client) return res.status(400).json({ message: "Customer is required." });
+    if (values.total == null || values.total < 0) return res.status(400).json({ message: "Amount must be zero or greater." });
+
+    values.total = roundAmount(values.total);
+  }
+
+  await pool.query(
+    `UPDATE budget_bookkeeping_entries
+        SET pr_code=?, entry_date=?, description=?, invoice_no=?, mode_of_payment=?, reference_no=?,
+            debit=?, credit=?, client=?, total=?, paid=?, remaining=?, supplier=?, amount_due=?, due_date=?, note=?
+      WHERE id=? AND section=?`,
+    [
+      values.prCode,
+      values.entryDate,
+      values.description,
+      values.invoiceNo,
+      values.modeOfPayment,
+      values.referenceNo,
+      values.debit,
+      values.credit,
+      values.client,
+      values.total,
+      values.paid,
+      values.remaining,
+      values.supplier,
+      values.amountDue,
+      values.dueDate,
+      values.note,
+      id,
+      section
+    ]
+  );
+
+  const [rows] = await pool.query(
+    `SELECT b.*,
+            u.name AS created_by_name
+       FROM budget_bookkeeping_entries b
+       LEFT JOIN users u ON u.id = b.created_by
+      WHERE b.id=?
+      LIMIT 1`,
+    [id]
+  );
+  const updated = serializeBookkeepingEntry(rows[0]);
+
+  await safeLogAudit({
+    userId: req.user.id,
+    actorName: req.user.name,
+    module: "BUDGET",
+    action: "BOOKKEEPING_UPDATED",
+    details: `${BOOKKEEPING_SECTION_LABELS[section]} bookkeeping entry updated.`,
+    ipAddress: getRequestIp(req)
+  });
+
+  return res.json(updated);
 };
 
 exports.deleteBookkeepingEntry = async (req, res) => {
