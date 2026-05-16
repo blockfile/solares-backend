@@ -324,6 +324,33 @@ async function fetchTransaction(id, connection = pool) {
   return serializeTransaction(rows[0] || null);
 }
 
+let ensureBookkeepingSchemaPromise = null;
+
+async function ensureBookkeepingSchema() {
+  if (!ensureBookkeepingSchemaPromise) {
+    ensureBookkeepingSchemaPromise = (async () => {
+      const requiredColumns = [
+        { name: "invoice_no", definition: "VARCHAR(100) NULL", after: "client" },
+        { name: "mode_of_payment", definition: "VARCHAR(100) NULL", after: "description" },
+        { name: "reference_no", definition: "VARCHAR(100) NULL", after: "mode_of_payment" }
+      ];
+
+      for (const column of requiredColumns) {
+        const [cols] = await pool.query(`SHOW COLUMNS FROM budget_bookkeeping_entries LIKE '${column.name}'`);
+        if (!cols.length) {
+          await pool.query(
+            `ALTER TABLE budget_bookkeeping_entries ADD COLUMN ${column.name} ${column.definition} AFTER ${column.after}`
+          );
+        }
+      }
+    })().catch((err) => {
+      ensureBookkeepingSchemaPromise = null;
+      throw err;
+    });
+  }
+  return ensureBookkeepingSchemaPromise;
+}
+
 function parseTransactionFilters(query = {}, { defaultLimit = 200, maxLimit = 500 } = {}) {
   const requestedLimit = Number(query.limit || defaultLimit);
   return {
@@ -345,9 +372,13 @@ function serializeBookkeepingEntry(row) {
     pr_code: row.pr_code || "",
     entry_date: formatSqlDate(row.entry_date),
     description: row.description || "",
+    invoice_no: row.invoice_no || "",
+    mode_of_payment: row.mode_of_payment || "",
+    reference_no: row.reference_no || "",
     debit: row.debit == null ? null : formatMoney(row.debit),
     credit: row.credit == null ? null : formatMoney(row.credit),
     client: row.client || "",
+    amount: row.total == null ? null : formatMoney(row.total),
     total: row.total == null ? null : formatMoney(row.total),
     paid: row.paid == null ? null : formatMoney(row.paid),
     remaining: row.remaining == null ? null : formatMoney(row.remaining),
@@ -990,6 +1021,8 @@ exports.summary = async (req, res) => {
 // Bookkeeping
 
 exports.listBookkeeping = async (_req, res) => {
+  await ensureBookkeepingSchema();
+
   const [rows] = await pool.query(
     `SELECT b.*,
             u.name AS created_by_name
@@ -1017,6 +1050,8 @@ exports.listBookkeeping = async (_req, res) => {
 };
 
 exports.createBookkeepingEntry = async (req, res) => {
+  await ensureBookkeepingSchema();
+
   const section = normalizeBookkeepingSection(req.params.section);
   if (!section) return res.status(400).json({ message: "Invalid bookkeeping section." });
 
@@ -1024,6 +1059,9 @@ exports.createBookkeepingEntry = async (req, res) => {
     prCode: cleanText(req.body.prCode ?? req.body.pr_code, 100),
     entryDate: null,
     description: null,
+    invoiceNo: null,
+    modeOfPayment: null,
+    referenceNo: null,
     debit: null,
     credit: null,
     client: null,
@@ -1053,19 +1091,19 @@ exports.createBookkeepingEntry = async (req, res) => {
   }
 
   if (section === "accounts_receivable") {
-    values.client = cleanText(req.body.client, 160);
-    values.total = nullableNumber(req.body.total);
-    values.paid = nullableNumber(req.body.paid);
-    values.remaining = nullableNumber(req.body.remaining);
+    values.entryDate = normalizeDate(req.body.date || req.body.entryDate);
+    values.client = cleanText(req.body.customer ?? req.body.client, 160);
+    values.invoiceNo = cleanText(req.body.invoiceNo ?? req.body.invoice_no, 100);
+    values.description = cleanText(req.body.description, 500);
+    values.modeOfPayment = cleanText(req.body.modeOfPayment ?? req.body.mode_of_payment, 100);
+    values.total = nullableNumber(req.body.amount ?? req.body.total);
+    values.referenceNo = cleanText(req.body.reference ?? req.body.referenceNo ?? req.body.reference_no, 100);
 
-    if (!values.client) return res.status(400).json({ message: "Client is required." });
-    if (values.total == null || values.total < 0) return res.status(400).json({ message: "Total must be zero or greater." });
-    if (values.paid != null && values.paid < 0) return res.status(400).json({ message: "Paid cannot be negative." });
-    if (values.remaining != null && values.remaining < 0) return res.status(400).json({ message: "Remaining cannot be negative." });
+    if (!values.entryDate) return res.status(400).json({ message: "Date is required." });
+    if (!values.client) return res.status(400).json({ message: "Customer is required." });
+    if (values.total == null || values.total < 0) return res.status(400).json({ message: "Amount must be zero or greater." });
 
     values.total = roundAmount(values.total);
-    values.paid = values.paid == null ? 0 : roundAmount(values.paid);
-    values.remaining = values.remaining == null ? Math.max(0, roundAmount(values.total - values.paid)) : roundAmount(values.remaining);
   }
 
   if (section === "accounts_payable") {
@@ -1082,13 +1120,16 @@ exports.createBookkeepingEntry = async (req, res) => {
 
   const [result] = await pool.query(
     `INSERT INTO budget_bookkeeping_entries
-       (section, pr_code, entry_date, description, debit, credit, client, total, paid, remaining, supplier, amount_due, due_date, note, created_by)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       (section, pr_code, entry_date, description, invoice_no, mode_of_payment, reference_no, debit, credit, client, total, paid, remaining, supplier, amount_due, due_date, note, created_by)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       section,
       values.prCode,
       values.entryDate,
       values.description,
+      values.invoiceNo,
+      values.modeOfPayment,
+      values.referenceNo,
       values.debit,
       values.credit,
       values.client,
