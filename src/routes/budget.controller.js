@@ -13,10 +13,10 @@ const ACCOUNT_TYPE_DIRECTIONS = {
 };
 const BOOKKEEPING_SECTIONS = new Set(["sales", "expense", "accounts_receivable", "accounts_payable"]);
 const BOOKKEEPING_SECTION_LABELS = {
-  sales: "Sales",
+  sales: "General Journal",
   expense: "Expense",
-  accounts_receivable: "Accounts Receivable",
-  accounts_payable: "Accounts Payable"
+  accounts_receivable: "Receipt Journal",
+  accounts_payable: "Disbursment Journal"
 };
 
 function toNumber(value, fallback = 0) {
