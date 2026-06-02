@@ -102,6 +102,7 @@ function isQuotePanelItem(input = {}) {
   return (
     input.isPanel === true ||
     Number(input.is_panel_item || 0) === 1 ||
+    toNumber(input.panelWatt ?? input.panel_watt, 0) > 0 ||
     subgroup === "panel" ||
     lowerDescription.includes("solar panel") ||
     (lowerDescription.includes("panel") && lowerDescription.includes("mono")) ||
@@ -385,7 +386,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
           margin_rate: normalizeRate(input?.marginRate, markupRate),
           catalog_material_id: Number(input?.catalogMaterialId || input?.catalog_material_id || 0) || null,
           is_panel_item: isPanelManual ? 1 : 0,
-          panel_watt: isPanelManual ? parsePanelWatt(description, 0) : 0
+          panel_watt: isPanelManual ? parsePanelWatt(description, toNumber(input?.panelWatt ?? input?.panel_watt, 0)) : 0
         });
 
         if (itemNo > nextItemNo) nextItemNo = itemNo;
@@ -419,7 +420,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
         is_panel_item: isPanelItem ? 1 : 0,
         panel_watt:
           isPanelItem
-            ? parsePanelWatt(description, toNumber(base.panel_watt, 0))
+            ? parsePanelWatt(description, toNumber(input?.panelWatt ?? input?.panel_watt, toNumber(base.panel_watt, 0)))
             : toNumber(base.panel_watt, 0)
       });
 

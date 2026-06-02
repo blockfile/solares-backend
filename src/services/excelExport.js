@@ -49,7 +49,8 @@ function isPanelDescription(description) {
   return (
     text.includes("solar panel") ||
     (text.includes("panel") && text.includes("mono")) ||
-    (text.includes("mono") && /\d{3,4}\s*w/.test(text))
+    (text.includes("mono") && /\d{3,4}\s*w/.test(text)) ||
+    /\b\d{3,4}\s*w\b/.test(text)
   );
 }
 
