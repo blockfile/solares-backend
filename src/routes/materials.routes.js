@@ -48,7 +48,7 @@ function uploadPriceList(req, res, next) {
   });
 }
 
-router.get("/", auth, requireModule("materials", "quotes"), c.list);
+router.get("/", auth, requireModule("materials", "quotes", "crm"), c.list);
 router.get("/suppliers", auth, requireModule("materials"), c.listSuppliers);
 router.post("/suppliers", auth, requireModule("materials"), c.createSupplier);
 router.put("/suppliers/:id", auth, requireModule("materials"), c.updateSupplier);

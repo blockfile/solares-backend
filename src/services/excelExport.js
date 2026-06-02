@@ -57,6 +57,10 @@ function roundPeso(n) {
   return Math.round(Number(n || 0));
 }
 
+function roundMoney(n) {
+  return Math.round(Number(n || 0) * 100) / 100;
+}
+
 const EXPORT_VAT_RATE = 0.12;
 
 function normalizeVatMode(value) {
@@ -269,7 +273,7 @@ function resolveTechnicalSpecs(groups) {
 
 function computeLineFromStoredTotals(rows, { description, qty, unit }) {
   if (!rows.length) return null;
-  const lineTotal = roundPeso(
+  const lineTotal = roundMoney(
     rows.reduce((sum, row) => sum + Number(row.unit_price || 0) * Number(row.qty || 0), 0)
   );
   const parsedQty = Number(qty || 0);
@@ -348,30 +352,30 @@ function summarizeForExport(quote, items) {
   });
   if (mountingLine && mountingLine.lineTotal > 0) lines.push(mountingLine);
 
-  const displayedMaterialTotal = roundPeso(lines.reduce((sum, line) => sum + Number(line.lineTotal || 0), 0));
+  const displayedMaterialTotal = roundMoney(lines.reduce((sum, line) => sum + Number(line.lineTotal || 0), 0));
 
   const packagePriceTarget = Number(quote?.package_price_target || 0);
   const isFixedPackage = String(quote?.pricing_mode || "").trim() === "fixed_package" && packagePriceTarget > 0;
 
   let totalTarget;
   if (isFixedPackage) {
-    totalTarget = roundPeso(packagePriceTarget);
+    totalTarget = roundMoney(packagePriceTarget);
   } else {
-    const storedSubtotal = roundPeso(
+    const storedSubtotal = roundMoney(
       (items || []).reduce((sum, row) => sum + Number(row.unit_price || 0) * Number(row.qty || 0), 0)
     );
     const preDiscountTotal = storedSubtotal > 0
       ? storedSubtotal
       : Number.isFinite(Number(quote?.subtotal)) && Number(quote.subtotal) > 0
-        ? roundPeso(quote.subtotal)
+        ? roundMoney(quote.subtotal)
         : Number.isFinite(Number(quote?.total))
-          ? roundPeso(quote.total)
+          ? roundMoney(quote.total)
           : null;
     totalTarget = preDiscountTotal != null
       ? preDiscountTotal
-      : displayedMaterialTotal + installationTotal;
+      : roundMoney(displayedMaterialTotal + installationTotal);
   }
-  const reconciledInstallation = Math.max(0, roundPeso(totalTarget - displayedMaterialTotal));
+  const reconciledInstallation = Math.max(0, roundMoney(totalTarget - displayedMaterialTotal));
 
   if (installationTotal > 0 || reconciledInstallation > 0) {
     lines.push({
@@ -478,6 +482,183 @@ function parseDate(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function parseWattFromText(value) {
+  const match = String(value || "").match(/(\d{3,4})\s*w/i);
+  if (!match) return 0;
+  const watt = Number(match[1]);
+  return Number.isFinite(watt) ? watt : 0;
+}
+
+function parseKwFromText(value) {
+  const match = String(value || "").match(/(\d+(?:\.\d+)?)\s*kw/i);
+  if (!match) return 0;
+  const kw = Number(match[1]);
+  return Number.isFinite(kw) ? kw : 0;
+}
+
+function formatKw(value) {
+  const kw = Number(value || 0);
+  if (!Number.isFinite(kw) || kw <= 0) return "";
+  return `${kw.toFixed(1).replace(/\.0$/, "")}KW`;
+}
+
+function resolveSuggestedSetup(items) {
+  const groups = groupQuoteItems(items || []);
+  const panelKw = groups.panelItems.reduce((sum, item) => {
+    const watt = parseWattFromText(buildItemSearchText(item));
+    return sum + (watt > 0 ? watt * Number(item.qty || 0) : 0);
+  }, 0) / 1000;
+  if (panelKw > 0) return formatKw(panelKw);
+
+  const inverterKw = groups.inverterItems.reduce((max, item) => {
+    const kw = parseKwFromText(buildItemSearchText(item));
+    return Math.max(max, kw);
+  }, 0);
+  return formatKw(inverterKw);
+}
+
+function safeMergeCells(ws, range) {
+  try {
+    ws.mergeCells(range);
+  } catch {}
+}
+
+function safeUnmergeCells(ws, range) {
+  try {
+    ws.unMergeCells(range);
+  } catch {}
+}
+
+function parseMergeRows(range) {
+  const matches = String(range || "").match(/[A-Z]+(\d+)/g) || [];
+  const rows = matches
+    .map((part) => Number(part.match(/\d+/)?.[0] || 0))
+    .filter((row) => row > 0);
+  if (!rows.length) return { start: 0, end: 0 };
+  return { start: Math.min(...rows), end: Math.max(...rows) };
+}
+
+function clearTemplateArea(ws, startRow, endRow, columnCount = 7) {
+  for (const merge of [...(ws.model.merges || [])]) {
+    const { start, end } = parseMergeRows(merge);
+    if (start && end >= startRow && start <= endRow) safeUnmergeCells(ws, merge);
+  }
+
+  for (let row = startRow; row <= endRow; row += 1) {
+    ws.getRow(row).hidden = false;
+    for (let col = 1; col <= columnCount; col += 1) {
+      const cell = ws.getCell(row, col);
+      cell.value = null;
+      cell.style = {};
+    }
+  }
+}
+
+function thinBorder(color = "FF000000") {
+  return {
+    top: { style: "thin", color: { argb: color } },
+    left: { style: "thin", color: { argb: color } },
+    bottom: { style: "thin", color: { argb: color } },
+    right: { style: "thin", color: { argb: color } }
+  };
+}
+
+function applyCellBox(cell, options = {}) {
+  const {
+    fill,
+    font,
+    alignment = { vertical: "middle", wrapText: true },
+    border = thinBorder()
+  } = options;
+  cell.border = border;
+  cell.alignment = alignment;
+  if (fill) cell.fill = fill;
+  if (font) cell.font = font;
+}
+
+function fillRange(ws, row, startCol, endCol, options = {}) {
+  for (let col = startCol; col <= endCol; col += 1) {
+    applyCellBox(ws.getCell(row, col), options);
+  }
+}
+
+function setMergedRow(ws, row, range, value, options = {}) {
+  safeMergeCells(ws, range);
+  ws.getCell(row, 1).value = value;
+  fillRange(ws, row, 1, 7, options);
+}
+
+function setSpecRow(ws, row, label, value) {
+  safeMergeCells(ws, `A${row}:B${row}`);
+  safeMergeCells(ws, `C${row}:G${row}`);
+  ws.getCell(`A${row}`).value = label;
+  ws.getCell(`C${row}`).value = value || "";
+  fillRange(ws, row, 1, 7, {
+    font: { size: 9 },
+    alignment: { vertical: "middle", wrapText: true }
+  });
+  ws.getCell(`A${row}`).font = { bold: true, size: 9 };
+}
+
+function rebuildQuotationTail(ws, startRow, items, { vatMode = "excl" } = {}) {
+  const specs = resolveTechnicalSpecs(groupQuoteItems(items || []));
+  const endRow = Math.max(startRow + 18, 45);
+  clearTemplateArea(ws, startRow, endRow);
+
+  let row = startRow;
+  setSpecRow(ws, row++, "Solar Panel Type", specs.panel);
+  setSpecRow(ws, row++, "Inverter Type", specs.inverter);
+  setSpecRow(ws, row++, "Battery Type", specs.battery);
+  setSpecRow(ws, row++, "Warranty on Panels", "12 years");
+  setSpecRow(ws, row++, "Warranty on Inverter", "5 years");
+  setSpecRow(ws, row++, "Workmanship Warranty", "1 year");
+
+  const yellowFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
+  setMergedRow(
+    ws,
+    row,
+    `A${row}:G${row}`,
+    `Note: Prices above are VAT ${normalizeVatMode(vatMode) === "incl" ? "inclusive" : "exclusive"}`,
+    {
+      fill: yellowFill,
+      font: { bold: true, size: 9, color: { argb: "FFFF0000" } },
+      alignment: { horizontal: "center", vertical: "middle" }
+    }
+  );
+  row += 2;
+
+  const sectionFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9EAF7" } };
+  setMergedRow(ws, row, `A${row}:G${row}`, "Delivery & Installation Timeline", {
+    fill: sectionFill,
+    font: { bold: true, size: 9 },
+    alignment: { horizontal: "center", vertical: "middle" }
+  });
+  row += 1;
+  setSpecRow(ws, row++, "Material Delivery", ": Day after the delivery of Materials (or depends on availability of stocks)");
+  setSpecRow(ws, row++, "Installation Completion", ": 3-5 days from delivery");
+  row += 1;
+
+  setMergedRow(ws, row, `A${row}:G${row}`, "Payment Terms", {
+    fill: sectionFill,
+    font: { bold: true, size: 9 },
+    alignment: { horizontal: "center", vertical: "middle" }
+  });
+  row += 1;
+  const terms = [
+    ": 40% Advance along with Work Order",
+    ": 40% After Material Delivery",
+    ": 20% After Installation & Commissioning"
+  ];
+  for (const term of terms) {
+    safeMergeCells(ws, `A${row}:G${row}`);
+    ws.getCell(`A${row}`).value = term;
+    fillRange(ws, row, 1, 7, { font: { size: 9 } });
+    row += 1;
+  }
+
+  return row;
+}
+
 function findRowContains(ws, text, from = 1, to = 300) {
   const needle = String(text || "").toLowerCase();
   for (let r = from; r <= to; r++) {
@@ -547,6 +728,22 @@ async function buildFromTemplate({ quote, items, vatMode = "incl" }) {
     addLogoToWorksheet(wb, ws, { col: 0.15, row: 0.15, width: 66, height: 66 });
   }
 
+  safeMergeCells(ws, "F6:G6");
+  safeMergeCells(ws, "F7:G8");
+  ws.getCell("F6").value = "Suggested Solar SET-UP:";
+  ws.getCell("F6").fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFCCB8" } };
+  ws.getCell("F6").font = { bold: true, underline: true, size: 10, color: { argb: "FFFF0000" } };
+  ws.getCell("F6").alignment = { horizontal: "center", vertical: "middle" };
+  ws.getCell("F7").value = resolveSuggestedSetup(items);
+  ws.getCell("F7").font = { bold: true, size: 16, color: { argb: "FF000000" } };
+  ws.getCell("F7").alignment = { horizontal: "center", vertical: "middle" };
+  for (const cellRef of ["F6", "G6", "F7", "G7", "F8", "G8"]) {
+    applyCellBox(ws.getCell(cellRef), {
+      border: thinBorder("FFFFFFFF"),
+      alignment: ws.getCell(cellRef).alignment || { horizontal: "center", vertical: "middle" }
+    });
+  }
+
   ws.getCell("A10").value = `Customer Name: ${quote.customer_name || ""}`;
   ws.getCell("F10").value = quote.quote_ref || "";
 
@@ -602,7 +799,7 @@ async function buildFromTemplate({ quote, items, vatMode = "incl" }) {
   } catch {}
   ws.mergeCells(`A${totalRow}:F${totalRow}`);
   ws.getCell(`A${totalRow}`).value = "TOTAL PRICE IN PHILIPPINE PESO";
-  const exportSubtotal = roundPeso(
+  const exportSubtotal = roundMoney(
     exportItems.reduce((sum, line) => sum + Number(line.lineTotal || 0), 0)
   );
   ws.getCell(`G${totalRow}`).value = exportSubtotal;
@@ -662,34 +859,28 @@ async function buildFromTemplate({ quote, items, vatMode = "incl" }) {
   );
 
   const xlsDiscItems = parseDiscountItems(quote);
-  const exportDiscountTotal = roundPeso(
+  const exportDiscountTotal = roundMoney(
     xlsDiscItems.reduce((sum, item) => sum + Number(item.amount || 0), 0)
   );
+  let finalSummaryRow = totalRow;
 
-  if (xlsDiscItems.length > 0) {
-    let curRow = totalRow + 1;
-    for (const d of xlsDiscItems) {
-      applySummaryRow(
-        curRow,
-        String(d.label || "Discount").toUpperCase(),
-        -roundPeso(d.amount || 0),
-        { fontColor: "FFC0392B" }
-      );
-      curRow++;
-    }
-    const finalRow = curRow;
+  if (exportDiscountTotal > 0) {
+    applySummaryRow(
+      totalRow + 1,
+      "PROMOTIONAL DISCOUNT",
+      -exportDiscountTotal,
+      { fontColor: "FFFF0000" }
+    );
+    const finalRow = totalRow + 2;
     applySummaryRow(
       finalRow,
       "TOTAL PRICE (Php) after DISCOUNT",
       exportSubtotal - exportDiscountTotal
     );
-
-    removeTemplateNoteSection(ws, finalRow + 1, 500);
-  } else {
-    removeTemplateNoteSection(ws, totalRow + 1, 500);
+    finalSummaryRow = finalRow;
   }
 
-  populateTechnicalSpecifications(ws, items);
+  rebuildQuotationTail(ws, finalSummaryRow + 1, items, { vatMode: "excl" });
 
   const buffer = await wb.xlsx.writeBuffer();
   return buffer;
@@ -850,83 +1041,254 @@ function parseDiscountItems(quote) {
   return [];
 }
 
+function formatPdfMoney(value) {
+  return Number(value || 0).toLocaleString("en-PH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
 async function buildCustomerPdf({ quote, items }) {
   const lines = summarizeForExport(quote, items);
-  const subtotal = roundPeso(lines.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0));
+  const subtotal = roundMoney(lines.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0));
   const discountItems = parseDiscountItems(quote);
-  const discountAmount = discountItems.reduce((s, d) => s + Number(d.amount || 0), 0);
+  const discountAmount = roundMoney(discountItems.reduce((s, d) => s + Number(d.amount || 0), 0));
   const total = subtotal - discountAmount;
+  const specs = resolveTechnicalSpecs(groupQuoteItems(items || []));
+  const suggestedSetup = resolveSuggestedSetup(items || []);
 
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    const doc = new PDFDocument({ size: "A4", margin: 20 });
     const chunks = [];
 
     doc.on("data", (chunk) => chunks.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    drawLogoOnPdf(doc, { x: 40, y: 36, width: 58, height: 58 });
-    doc.fontSize(20).font("Helvetica-Bold").text("SOLARES Energy Solutions", 112, 42);
-    doc.fontSize(10).font("Helvetica").text("Customer Quotation", 112, 67);
-    doc.y = 108;
-    doc.fontSize(10).text(`Customer Name: ${quote.customer_name || ""}`);
-    doc.text(`Quotation Ref: ${quote.quote_ref || ""}`);
-    doc.text(`Date: ${formatDateForDoc(quote.quote_date)}`);
-    doc.text(`Valid Until: ${formatDateForDoc(quote.valid_until)}`);
+    const COLORS = {
+      navy: "#082866",
+      lightBlue: "#D9EAF7",
+      yellow: "#FFFF00",
+      red: "#FF0000",
+      setup: "#FFCCB8",
+      black: "#000000",
+      blue: "#0066FF"
+    };
+    const left = 20;
+    const tableWidth = 552;
+    const widths = { no: 48, item: 260, qty: 86, up: 79, tp: 79 };
 
-    let y = doc.y + 12;
-    const col = { no: 40, item: 90, qty: 360, up: 430, tp: 500 };
+    function setFont({ bold = false, size = 8, color = COLORS.black } = {}) {
+      doc.font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(size).fillColor(color);
+    }
 
-    doc.font("Helvetica-Bold").fontSize(10);
-    doc.text("ITEM", col.no, y);
-    doc.text("DESCRIPTION", col.item, y);
-    doc.text("QTY", col.qty, y);
-    doc.text("U.P. PHP", col.up, y);
-    doc.text("T.P. PHP", col.tp, y);
+    function drawCell(x, y, w, h, text = "", options = {}) {
+      const {
+        fill,
+        color = COLORS.black,
+        bold = false,
+        size = 8,
+        align = "left",
+        valign = "middle",
+        padding = 3,
+        borderColor = COLORS.black
+      } = options;
+      doc.lineWidth(0.7);
+      if (fill) doc.rect(x, y, w, h).fillAndStroke(fill, borderColor);
+      else doc.rect(x, y, w, h).stroke(borderColor);
+      setFont({ bold, size, color });
+      const content = String(text ?? "");
+      const textWidth = Math.max(1, w - padding * 2);
+      const textHeight = doc.heightOfString(content, { width: textWidth, align });
+      const textY = valign === "top" ? y + padding : y + Math.max(padding, (h - textHeight) / 2);
+      doc.text(content, x + padding, textY, {
+        width: textWidth,
+        align,
+        height: Math.max(1, h - padding * 2)
+      });
+    }
 
-    y += 16;
-    doc.moveTo(40, y - 4).lineTo(555, y - 4).strokeColor("#23364d").stroke();
+    function rowHeightFor(text, width, baseHeight = 19, size = 8) {
+      setFont({ size });
+      return Math.max(baseHeight, doc.heightOfString(String(text || ""), { width: width - 8 }) + 8);
+    }
 
-    doc.font("Helvetica").fontSize(9);
+    function drawMergedRow(y, h, label, value, options = {}) {
+      drawCell(left, y, widths.no + widths.item + widths.qty + widths.up, h, label, {
+        fill: COLORS.yellow,
+        bold: true,
+        size: 8.5,
+        align: "right",
+        color: options.color || COLORS.black
+      });
+      drawCell(left + widths.no + widths.item + widths.qty + widths.up, y, widths.tp, h, value, {
+        fill: COLORS.yellow,
+        bold: true,
+        size: 8.5,
+        align: "right",
+        color: options.color || COLORS.black
+      });
+    }
+
+    drawLogoOnPdf(doc, { x: 48, y: 28, width: 70, height: 70 });
+    setFont({ bold: true, size: 16 });
+    doc.text("SOLARES Energy Solutions", 145, 32);
+    setFont({ size: 8 });
+    doc.text("Sumacab Norte, Cabanatuan City", 145, 52);
+    doc.text("Nueva Ecija, 3100", 145, 64);
+    setFont({ bold: true, size: 8 });
+    doc.text("Email Address:", 145, 88);
+    setFont({ size: 8, color: COLORS.blue });
+    doc.text(" solares.energysolutions@gmail.com", 207, 88);
+    setFont({ bold: true, size: 8 });
+    doc.text("Cellphone No.:", 145, 101);
+    setFont({ size: 8 });
+    doc.text(" 0967-886-7909", 210, 101);
+
+    drawCell(412, 87, 140, 16, "Suggested Solar SET-UP:", {
+      fill: COLORS.setup,
+      bold: true,
+      color: COLORS.red,
+      size: 8,
+      align: "center"
+    });
+    drawCell(412, 103, 140, 28, suggestedSetup || "", {
+      fill: "#FFFFFF",
+      bold: true,
+      size: 16,
+      align: "center"
+    });
+
+    let y = 123;
+    drawCell(left, y, tableWidth, 15, "Quotation", {
+      fill: COLORS.lightBlue,
+      bold: true,
+      size: 11,
+      align: "center"
+    });
+    y += 15;
+
+    const leftInfoWidth = widths.no + widths.item;
+    const labelWidth = widths.qty;
+    const rightInfoWidth = widths.up + widths.tp;
+    drawCell(left, y, leftInfoWidth, 17, `Customer Name: ${quote.customer_name || ""}`, { bold: true, size: 7.5 });
+    drawCell(left + leftInfoWidth, y, labelWidth, 17, "Quotation Ref:", { bold: true, size: 7.5 });
+    drawCell(left + leftInfoWidth + labelWidth, y, rightInfoWidth, 17, quote.quote_ref || "", { size: 7.5, align: "center" });
+    y += 17;
+    drawCell(left, y, leftInfoWidth, 17, "", { size: 7.5 });
+    drawCell(left + leftInfoWidth, y, labelWidth, 17, "Date", { bold: true, size: 7.5 });
+    drawCell(left + leftInfoWidth + labelWidth, y, rightInfoWidth, 17, formatDateForDoc(quote.quote_date), { size: 7.5, align: "center" });
+    y += 17;
+    drawCell(left, y, leftInfoWidth, 17, "", { size: 7.5 });
+    drawCell(left + leftInfoWidth, y, labelWidth, 17, "Valid  Until", { bold: true, size: 7.5 });
+    drawCell(left + leftInfoWidth + labelWidth, y, rightInfoWidth, 17, formatDateForDoc(quote.valid_until), { size: 7.5, align: "center" });
+    y += 17;
+
+    drawCell(left, y, widths.no, 27, "ITEM", { fill: COLORS.navy, color: "#FFFFFF", bold: true, align: "center" });
+    drawCell(left + widths.no, y, widths.item, 27, "ITEM", { fill: COLORS.navy, color: "#FFFFFF", bold: true, align: "center" });
+    drawCell(left + widths.no + widths.item, y, widths.qty, 27, "QTY", { fill: COLORS.navy, color: "#FFFFFF", bold: true, align: "center" });
+    drawCell(left + widths.no + widths.item + widths.qty, y, widths.up, 27, "U.P.\nPESO", { fill: COLORS.navy, color: "#FFFFFF", bold: true, align: "center" });
+    drawCell(left + widths.no + widths.item + widths.qty + widths.up, y, widths.tp, 27, "T.P\nPESO", { fill: COLORS.navy, color: "#FFFFFF", bold: true, align: "center" });
+    y += 27;
+
     for (const row of lines) {
-      doc.text(String(row.itemNo || ""), col.no, y, { width: 40 });
-      doc.text(String(row.description || ""), col.item, y, { width: 260 });
-      doc.text(String(row.qtyDisplay || ""), col.qty, y, { width: 55 });
-      doc.text(formatCurrencyPhp(row.unitPrice), col.up, y, { width: 65, align: "right" });
-      doc.text(formatCurrencyPhp(row.lineTotal), col.tp, y, { width: 65, align: "right" });
-      y += 18;
-      if (y > 760) {
+      const h = rowHeightFor(row.description, widths.item, 23, 8);
+      drawCell(left, y, widths.no, h, row.itemNo || "", { align: "center", size: 8 });
+      drawCell(left + widths.no, y, widths.item, h, row.description || "", { size: 8, valign: "top" });
+      drawCell(left + widths.no + widths.item, y, widths.qty, h, row.qtyDisplay || "", { align: "center", size: 8 });
+      drawCell(left + widths.no + widths.item + widths.qty, y, widths.up, h, formatPdfMoney(row.unitPrice), { align: "right", size: 8 });
+      drawCell(left + widths.no + widths.item + widths.qty + widths.up, y, widths.tp, h, formatPdfMoney(row.lineTotal), { align: "right", size: 8 });
+      y += h;
+      if (y > 720) {
         doc.addPage();
-        y = 50;
+        y = 30;
       }
     }
 
-    y += 8;
-    doc.moveTo(40, y).lineTo(555, y).strokeColor("#23364d").stroke();
-    y += 8;
-    doc.font("Helvetica-Bold").fontSize(11);
+    drawMergedRow(y, 19, "TOTAL PRICE IN PHILIPPINE PESO", formatPdfMoney(subtotal));
+    y += 19;
 
-    doc.text("TOTAL PRICE IN PHILIPPINE PESO", 280, y, { width: 180, align: "right" });
-    doc.text(formatCurrencyPhp(subtotal), col.tp, y, { width: 65, align: "right" });
+    if (discountAmount > 0) {
+      drawMergedRow(y, 19, "PROMOTIONAL DISCOUNT", `-${formatPdfMoney(discountAmount)}`, { color: COLORS.red });
+      y += 19;
+      drawMergedRow(y, 19, "TOTAL PRICE (Php) after DISCOUNT", formatPdfMoney(total));
+      y += 19;
+    }
 
-    if (discountItems.length > 0) {
-      for (const d of discountItems) {
-        y += 20;
-        if (y > 760) { doc.addPage(); y = 50; }
-        doc.fillColor("#c0392b").text(String(d.label || "Discount").toUpperCase(), 280, y, { width: 180, align: "right" });
-        doc.text(`-${formatCurrencyPhp(Number(d.amount || 0))}`, col.tp, y, { width: 65, align: "right" });
-        doc.fillColor("#000000");
-      }
-      y += 20;
-      doc.moveTo(40, y).lineTo(555, y).strokeColor("#23364d").stroke();
-      y += 8;
-      doc.font("Helvetica-Bold").fontSize(11);
-      doc.text("TOTAL PRICE (Php) after DISCOUNT", 280, y, { width: 180, align: "right" });
-      doc.text(formatCurrencyPhp(total), col.tp, y, { width: 65, align: "right" });
+    function drawSpecRow(label, value, minHeight = 15) {
+      const h = rowHeightFor(value, tableWidth - 148, minHeight, 7.2);
+      drawCell(left, y, 148, h, label, { bold: true, size: 7.2 });
+      drawCell(left + 148, y, tableWidth - 148, h, value || "", { size: 7.2, valign: "top" });
+      y += h;
+    }
+
+    drawSpecRow("Solar Panel Type", specs.panel);
+    drawSpecRow("Inverter Type", specs.inverter);
+    drawSpecRow("Battery Type", specs.battery, 20);
+    drawSpecRow("Warranty on Panels", "12 years");
+    drawSpecRow("Warranty on Inverter", "5 years");
+    drawSpecRow("Workmanship Warranty", "1 year");
+
+    drawCell(left, y, tableWidth, 18, "Note: Prices above are VAT exclusive", {
+      fill: COLORS.yellow,
+      bold: true,
+      color: COLORS.red,
+      align: "center",
+      size: 8
+    });
+    y += 28;
+
+    drawCell(left, y, tableWidth, 16, "Delivery & Installation Timeline", {
+      fill: COLORS.lightBlue,
+      bold: true,
+      align: "center",
+      size: 8
+    });
+    y += 16;
+    drawSpecRow("Material Delivery", ": Day after the delivery of Materials (or depends on availability of stocks)");
+    drawSpecRow("Installation Completion", ": 3-5 days from delivery");
+    y += 12;
+
+    drawCell(left, y, tableWidth, 16, "Payment Terms", {
+      fill: COLORS.lightBlue,
+      bold: true,
+      align: "center",
+      size: 8
+    });
+    y += 16;
+    for (const term of [
+      ": 40% Advance along with Work Order",
+      ": 40% After Material Delivery",
+      ": 20% After Installation & Commissioning"
+    ]) {
+      drawCell(left, y, tableWidth, 15, term, { size: 7.5 });
+      y += 15;
     }
 
     doc.end();
   });
+}
+
+function buildCustomerQuotationPreviewData({ quote, items }) {
+  const lines = summarizeForExport(quote, items || []);
+  const subtotal = roundMoney(lines.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0));
+  const discountItems = parseDiscountItems(quote || {});
+  const discountTotal = roundMoney(discountItems.reduce((sum, item) => sum + Number(item.amount || 0), 0));
+  const specs = resolveTechnicalSpecs(groupQuoteItems(items || []));
+
+  return {
+    lines,
+    subtotal,
+    discountItems,
+    discountTotal,
+    total: roundMoney(subtotal - discountTotal),
+    specs,
+    suggestedSetup: resolveSuggestedSetup(items || []),
+    quoteRef: quote?.quote_ref || "",
+    customerName: quote?.customer_name || "",
+    quoteDate: quote?.quote_date || "",
+    validUntil: quote?.valid_until || ""
+  };
 }
 
 async function buildCustomerQuotationExcel({ quote, items, vatMode = "incl" }) {
@@ -953,6 +1315,7 @@ async function buildCompanyQuotationExcel({ quote, items, vatMode = "incl" }) {
 }
 
 module.exports = {
+  buildCustomerQuotationPreviewData,
   buildCustomerQuotationExcel,
   buildCustomerQuotationPdf,
   buildCompanyQuotationExcel,

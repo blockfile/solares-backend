@@ -5,6 +5,11 @@ const MODULE_DEFINITIONS = [
     description: "View and manage calendar events."
   },
   {
+    key: "crm",
+    label: "Customer Relationship Management",
+    description: "Manage clients, projects, sales records, package selection, and quotations."
+  },
+  {
     key: "quotes",
     label: "Quotes",
     description: "Create and export customer quotations."
@@ -40,6 +45,16 @@ const MODULE_DEFINITIONS = [
     description: "Manage reusable pricing margin templates."
   },
   {
+    key: "finance",
+    label: "Financial Management",
+    description: "Manage sales transactions, collections, payments, expenses, project costing, cash flow, and financial reports."
+  },
+  {
+    key: "accounting",
+    label: "Accounting Management",
+    description: "Manage chart of accounts, journal entries, general ledger, trial balance, receivables, payables, and financial statements."
+  },
+  {
     key: "users",
     label: "Users",
     description: "Create users and assign roles."
@@ -53,11 +68,6 @@ const MODULE_DEFINITIONS = [
     key: "audit",
     label: "Audit",
     description: "Review activity logs and history."
-  },
-  {
-    key: "budget",
-    label: "Financial & Accounting Management",
-    description: "Track income and expenses, manage accounts, and monitor cash flow."
   }
 ];
 
@@ -68,6 +78,9 @@ const SYSTEM_ROLE_KEYS = {
 
 const MODULE_MAP = new Map(MODULE_DEFINITIONS.map((definition) => [definition.key, definition]));
 const ALL_MODULE_KEYS = MODULE_DEFINITIONS.map((definition) => definition.key);
+const MODULE_ALIASES = {
+  budget: ["finance", "accounting"]
+};
 
 function normalizeRoleKey(value) {
   const normalized = String(value || "")
@@ -130,9 +143,12 @@ function normalizeModules(value, fallback = []) {
   const modules = [];
   for (const item of source) {
     const key = normalizeModuleKey(item);
-    if (!MODULE_MAP.has(key) || seen.has(key)) continue;
-    seen.add(key);
-    modules.push(key);
+    const keys = MODULE_ALIASES[key] || [key];
+    for (const moduleKey of keys) {
+      if (!MODULE_MAP.has(moduleKey) || seen.has(moduleKey)) continue;
+      seen.add(moduleKey);
+      modules.push(moduleKey);
+    }
   }
   return modules;
 }
@@ -142,8 +158,11 @@ function parseModulesJson(value, fallback = []) {
 }
 
 function hasModuleAccess(user, moduleKey) {
+  if (normalizeRoleKey(user?.role) === SYSTEM_ROLE_KEYS.ADMIN) return true;
   const key = normalizeModuleKey(moduleKey);
-  return normalizeModules(user?.permissions, defaultModulesForRole(user?.role)).includes(key);
+  const allowedKeys = normalizeModules(user?.permissions, defaultModulesForRole(user?.role));
+  const requestedKeys = MODULE_ALIASES[key] || [key];
+  return requestedKeys.some((requestedKey) => allowedKeys.includes(requestedKey));
 }
 
 function listModules() {

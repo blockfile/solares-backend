@@ -3,10 +3,10 @@ const {
   DEFAULT_INSTALLATION_MARKUP_RATE,
   DEFAULT_MATERIAL_MARKUP_RATE,
   applyInstallationMarkup,
-  applyMaterialMarkup,
-  computeInstallation
+  applyMaterialMarkup
 } = require("../services/pricing");
 const {
+  buildCustomerQuotationPreviewData,
   buildCustomerQuotationExcel,
   buildCustomerQuotationPdf,
   buildCompanyQuotationExcel
@@ -233,6 +233,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
     discountItems,
     items: customItems,
     installationMarginRate,
+    installationMultiplier,
     quoteVatMode
   } = req.body;
   const parsedTemplateId = Number(templateId);
@@ -258,7 +259,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
     DEFAULT_INSTALLATION_MARKUP_RATE
   );
   const effectiveQuoteVatMode = normalizeVatMode(quoteVatMode);
-  const installationRatePerWatt = 9;
+  const installationRatePerWatt = Math.max(0, toNumber(installationMultiplier, 9));
 
   let templateName = `Template #${parsedTemplateId}`;
   let packageScenarioLabel = null;
@@ -415,10 +416,12 @@ exports.createQuoteFromTemplate = async (req, res) => {
       .sort((a, b) => Number(a.item_no) - Number(b.item_no));
   }
 
-  // Find panel item qty and watt for installation formula
-  const panelItem = items.find((x) => x.is_panel_item === 1);
-  const panelQty = panelItem ? Number(panelItem.qty) : 0;
-  const panelWatt = panelItem ? Number(panelItem.panel_watt || 0) : 0;
+  // Find selected panel quantity and wattage for installation formula.
+  const panelItemsForInstallation = items.filter((x) => x.is_panel_item === 1);
+  const panelTotalWatt = panelItemsForInstallation.reduce(
+    (sum, item) => sum + Number(item.qty || 0) * Number(item.panel_watt || 0),
+    0
+  );
 
   let subtotal = 0;
   const connection = await pool.getConnection();
@@ -467,7 +470,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
     }
 
     const materialsSubtotal = subtotal;
-    const installationBasePrice = computeInstallation(panelQty, panelWatt, installationRatePerWatt);
+    const installationBasePrice = Math.round(panelTotalWatt * installationRatePerWatt);
     let installation = applyInstallationMarkup(installationBasePrice, installationMarkupRate);
     if (pricingMode === "fixed_package" && packagePriceTarget != null) {
       installation = Math.round(packagePriceTarget - materialsSubtotal);
@@ -521,11 +524,13 @@ exports.createQuoteFromTemplate = async (req, res) => {
 };
 
 exports.getQuote = async (req, res) => {
-  const [q] = await pool.query("SELECT * FROM quotes WHERE id=?", [req.params.id]);
-  const [items] = await pool.query("SELECT * FROM quote_items WHERE quote_id=? ORDER BY item_no", [
-    req.params.id
-  ]);
-  res.json({ quote: q[0], items });
+  const payload = await loadQuoteForExport(req.params.id);
+  if (!payload) return res.status(404).json({ message: "Quote not found" });
+
+  res.json({
+    ...payload,
+    preview: buildCustomerQuotationPreviewData(payload)
+  });
 };
 
 exports.deleteQuote = async (req, res) => {

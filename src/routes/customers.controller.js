@@ -78,9 +78,27 @@ function serializeDetailArray(value) {
   return JSON.stringify(Array.isArray(value) ? value : []);
 }
 
+let customerSchemaPromise = null;
+
+async function ensureCustomerSchema() {
+  if (customerSchemaPromise) return customerSchemaPromise;
+  customerSchemaPromise = (async () => {
+    const [tinCols] = await pool.query("SHOW COLUMNS FROM customers LIKE 'tin_no'");
+    if (!tinCols.length) {
+      try {
+        await pool.query("ALTER TABLE customers ADD COLUMN tin_no VARCHAR(80) NULL AFTER contact");
+      } catch (err) {
+        if (err?.code !== "ER_DUP_FIELDNAME") throw err;
+      }
+    }
+  })();
+  return customerSchemaPromise;
+}
+
 // ── Customers ─────────────────────────────────────────────────────────────────
 
 async function fetchCustomer(id, connection = pool) {
+  await ensureCustomerSchema();
   const [rows] = await connection.query(
     `SELECT c.*,
             u.name AS created_by_name,
@@ -125,6 +143,7 @@ function serializeCustomer(row) {
 }
 
 exports.listCustomers = async (req, res) => {
+  await ensureCustomerSchema();
   const active = String(req.query.active || "all").toLowerCase();
   const where = [];
   const params = [];
@@ -162,27 +181,30 @@ exports.listCustomers = async (req, res) => {
 };
 
 exports.createCustomer = async (req, res) => {
+  await ensureCustomerSchema();
   const name = cleanText(req.body.name, 160);
   const contact = cleanText(req.body.contact, 120);
+  const tinNo = cleanText(req.body.tinNo ?? req.body.tin_no, 80);
   const address = cleanText(req.body.address, 500);
   const notes = cleanText(req.body.notes, 4000);
-  if (!name) return res.status(400).json({ message: "name is required" });
+  if (!name) return res.status(400).json({ message: "Full name is required" });
 
   try {
     const [result] = await pool.query(
-      "INSERT INTO customers (name, contact, address, notes, created_by) VALUES (?,?,?,?,?)",
-      [name, contact, address, notes, req.user.id]
+      "INSERT INTO customers (name, contact, tin_no, address, notes, created_by) VALUES (?,?,?,?,?,?)",
+      [name, contact, tinNo, address, notes, req.user.id]
     );
     const created = await fetchCustomer(result.insertId);
-    await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "SALES", action: "CUSTOMER_CREATED", details: `Customer "${name}" created.`, ipAddress: getRequestIp(req) });
+    await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "CRM", action: "CUSTOMER_CREATED", details: `Customer "${name}" created.`, ipAddress: getRequestIp(req) });
     return res.status(201).json(created);
   } catch (err) {
-    if (err?.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "A customer with that name already exists." });
+    if (err?.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "A customer with that full name already exists." });
     throw err;
   }
 };
 
 exports.updateCustomer = async (req, res) => {
+  await ensureCustomerSchema();
   const id = Number(req.params.id || 0);
   if (!id) return res.status(400).json({ message: "Invalid id" });
   const existing = await fetchCustomer(id);
@@ -190,25 +212,27 @@ exports.updateCustomer = async (req, res) => {
 
   const name = Object.prototype.hasOwnProperty.call(req.body, "name") ? cleanText(req.body.name, 160) : existing.name;
   const contact = Object.prototype.hasOwnProperty.call(req.body, "contact") ? cleanText(req.body.contact, 120) : existing.contact;
+  const tinNo = Object.prototype.hasOwnProperty.call(req.body, "tinNo") || Object.prototype.hasOwnProperty.call(req.body, "tin_no") ? cleanText(req.body.tinNo ?? req.body.tin_no, 80) : existing.tin_no;
   const address = Object.prototype.hasOwnProperty.call(req.body, "address") ? cleanText(req.body.address, 500) : existing.address;
   const notes = Object.prototype.hasOwnProperty.call(req.body, "notes") ? cleanText(req.body.notes, 4000) : existing.notes;
   const isActive = Object.prototype.hasOwnProperty.call(req.body, "isActive") ? (toFlag(req.body.isActive) ? 1 : 0) : Number(existing.is_active);
 
-  if (!name) return res.status(400).json({ message: "name is required" });
+  if (!name) return res.status(400).json({ message: "Full name is required" });
 
   try {
-    await pool.query("UPDATE customers SET name=?, contact=?, address=?, notes=?, is_active=? WHERE id=?", [name, contact, address, notes, isActive, id]);
+    await pool.query("UPDATE customers SET name=?, contact=?, tin_no=?, address=?, notes=?, is_active=? WHERE id=?", [name, contact, tinNo, address, notes, isActive, id]);
   } catch (err) {
-    if (err?.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "A customer with that name already exists." });
+    if (err?.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "A customer with that full name already exists." });
     throw err;
   }
 
   const updated = await fetchCustomer(id);
   const changes = [
-    describeAuditChange("Name", existing.name, updated.name),
-    describeAuditChange("Contact", existing.contact, updated.contact),
+    describeAuditChange("Full Name", existing.name, updated.name),
+    describeAuditChange("Contact No.", existing.contact, updated.contact),
+    describeAuditChange("TIN No.", existing.tin_no, updated.tin_no),
   ].filter(Boolean);
-  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "SALES", action: "CUSTOMER_UPDATED", details: changes.length ? `Customer "${updated.name}" updated. ${changes.join("; ")}.` : `Customer "${updated.name}" saved.`, ipAddress: getRequestIp(req) });
+  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "CRM", action: "CUSTOMER_UPDATED", details: changes.length ? `Customer "${updated.name}" updated. ${changes.join("; ")}.` : `Customer "${updated.name}" saved.`, ipAddress: getRequestIp(req) });
   return res.json(updated);
 };
 
@@ -220,11 +244,11 @@ exports.deleteCustomer = async (req, res) => {
 
   if (existing.project_count > 0) {
     await pool.query("UPDATE customers SET is_active=0 WHERE id=?", [id]);
-    await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "SALES", action: "CUSTOMER_DEACTIVATED", details: `Customer "${existing.name}" deactivated (has ${existing.project_count} project(s)).`, ipAddress: getRequestIp(req) });
+    await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "CRM", action: "CUSTOMER_DEACTIVATED", details: `Customer "${existing.name}" deactivated (has ${existing.project_count} project(s)).`, ipAddress: getRequestIp(req) });
     return res.json({ success: true, deactivated: true });
   }
   await pool.query("DELETE FROM customers WHERE id=?", [id]);
-  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "SALES", action: "CUSTOMER_DELETED", details: `Customer "${existing.name}" deleted.`, ipAddress: getRequestIp(req) });
+  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "CRM", action: "CUSTOMER_DELETED", details: `Customer "${existing.name}" deleted.`, ipAddress: getRequestIp(req) });
   return res.json({ success: true, deactivated: false });
 };
 
@@ -341,7 +365,7 @@ exports.createProject = async (req, res) => {
     [customerId, projectName, systemPackage, location, saleAmount, projectDate, startDate, endDate, serializeDetailArray(materialsDetails), serializeDetailArray(laborDetails), serializeDetailArray(otherExpensesDetails), status, projectCategory, notes, req.user.id]
   );
   const created = await fetchProject(result.insertId);
-  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "SALES", action: "PROJECT_CREATED", details: `Project "${projectName}" created${customerName ? ` for ${customerName}` : ""}. Sale: ${formatAuditValue(saleAmount)}.`, ipAddress: getRequestIp(req) });
+  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "CRM", action: "PROJECT_CREATED", details: `Project "${projectName}" created${customerName ? ` for ${customerName}` : ""}. Sale: ${formatAuditValue(saleAmount)}.`, ipAddress: getRequestIp(req) });
   return res.status(201).json(created);
 };
 
@@ -383,7 +407,7 @@ exports.updateProject = async (req, res) => {
     describeAuditChange("Status", existing.status, updated.status),
     describeAuditChange("Category", existing.project_category, updated.project_category),
   ].filter(Boolean);
-  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "SALES", action: "PROJECT_UPDATED", details: changes.length ? `Project "${updated.project_name}" updated. ${changes.join("; ")}.` : `Project "${updated.project_name}" saved.`, ipAddress: getRequestIp(req) });
+  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "CRM", action: "PROJECT_UPDATED", details: changes.length ? `Project "${updated.project_name}" updated. ${changes.join("; ")}.` : `Project "${updated.project_name}" saved.`, ipAddress: getRequestIp(req) });
   return res.json(updated);
 };
 
@@ -395,7 +419,7 @@ exports.deleteProject = async (req, res) => {
 
   await pool.query("UPDATE budget_transactions SET project_id=NULL WHERE project_id=?", [id]);
   await pool.query("DELETE FROM customer_projects WHERE id=?", [id]);
-  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "SALES", action: "PROJECT_DELETED", details: `Project "${existing.project_name}" deleted. ${existing.transaction_count} transaction(s) unlinked.`, ipAddress: getRequestIp(req) });
+  await safeLogAudit({ userId: req.user.id, actorName: req.user.name, module: "CRM", action: "PROJECT_DELETED", details: `Project "${existing.project_name}" deleted. ${existing.transaction_count} transaction(s) unlinked.`, ipAddress: getRequestIp(req) });
   return res.json({ success: true });
 };
 

@@ -1,4 +1,8 @@
 const pool = require("../config/db");
+const {
+  fetchTemplateCosting,
+  enrichPackageScenarios
+} = require("../services/packageCosting");
 const { describeAuditChange, formatAuditValue, getRequestIp, safeLogAudit } = require("../services/audit");
 
 function toNumber(value, fallback = 0) {
@@ -26,10 +30,7 @@ async function fetchPackagePrice(id) {
   return rows[0] || null;
 }
 
-exports.list = async (req, res) => {
-  const templateId = Number(req.query.templateId || 0);
-  const activeOnly = String(req.query.activeOnly || "1") !== "0";
-
+async function queryPackagePrices({ templateId = 0, activeOnly = true } = {}) {
   const where = [];
   const params = [];
 
@@ -51,7 +52,59 @@ exports.list = async (req, res) => {
     params
   );
 
+  return rows;
+}
+
+async function attachCostingToRows(rows, { vatMode = "incl" } = {}) {
+  if (!rows.length) return rows;
+
+  const templateIds = Array.from(
+    new Set(rows.map((row) => Number(row.template_id || 0)).filter(Boolean))
+  );
+  const costingPairs = await Promise.all(
+    templateIds.map(async (templateId) => [
+      templateId,
+      await fetchTemplateCosting(templateId, { vatMode, includeItems: false })
+    ])
+  );
+  const costingByTemplateId = new Map(costingPairs);
+
+  return rows.map((row) => {
+    const costing = costingByTemplateId.get(Number(row.template_id || 0));
+    return enrichPackageScenarios([row], costing)[0];
+  });
+}
+
+exports.list = async (req, res) => {
+  const templateId = Number(req.query.templateId || 0);
+  const activeOnly = String(req.query.activeOnly || "1") !== "0";
+  const includeCosting = String(req.query.includeCosting || "0") === "1";
+
+  const rows = await queryPackagePrices({ templateId, activeOnly });
+  if (includeCosting) {
+    return res.json(await attachCostingToRows(rows, { vatMode: req.query.vatMode }));
+  }
+
   return res.json(rows);
+};
+
+exports.costing = async (req, res) => {
+  const templateId = Number(req.query.templateId || 0);
+  const activeOnly = String(req.query.activeOnly || "1") !== "0";
+
+  if (!templateId) return res.status(400).json({ message: "templateId is required" });
+
+  const templateCosting = await fetchTemplateCosting(templateId, {
+    vatMode: req.query.vatMode,
+    includeItems: true
+  });
+  if (!templateCosting) return res.status(404).json({ message: "Template not found" });
+
+  const rows = await queryPackagePrices({ templateId, activeOnly });
+  return res.json({
+    ...templateCosting,
+    package_scenarios: enrichPackageScenarios(rows, templateCosting)
+  });
 };
 
 exports.create = async (req, res) => {

@@ -30,10 +30,10 @@ function uploadTemplateWorkbook(req, res, next) {
 router.post("/import", auth, requireModule("templates"), uploadTemplateWorkbook, c.importExcel);
 router.post("/", auth, requireModule("templates"), c.createTemplate);
 router.post("/:id/duplicate", auth, requireModule("templates"), c.duplicateTemplate);
-router.get("/", auth, requireModule("templates", "quotes", "packages"), c.listTemplates);
+router.get("/", auth, requireModule("templates", "quotes", "packages", "crm"), c.listTemplates);
 router.get("/:id/export/excel-all", auth, requireModule("templates"), c.exportTemplateExcelBundle);
 router.get("/:id/export/excel", auth, requireModule("templates"), c.exportTemplateExcel);
-router.get("/:id/items", auth, requireModule("templates", "quotes"), c.listTemplateItems);
+router.get("/:id/items", auth, requireModule("templates", "quotes", "crm"), c.listTemplateItems);
 router.post("/:id/items", auth, requireModule("templates"), c.createTemplateItem);
 router.put("/:id/items/:itemId", auth, requireModule("templates"), c.updateTemplateItem);
 router.delete("/:id/items/:itemId", auth, requireModule("templates"), c.deleteTemplateItem);
