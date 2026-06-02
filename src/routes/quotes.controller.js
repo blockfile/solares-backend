@@ -95,6 +95,20 @@ function parsePanelWatt(description, fallback = 0) {
   return Number.isFinite(watt) ? watt : toNumber(fallback, 0);
 }
 
+function isQuotePanelItem(input = {}) {
+  const description = String(input.description || input.material_name || "");
+  const subgroup = String(input.subgroup || input.catalog_subgroup || "").trim().toLowerCase();
+  const lowerDescription = description.toLowerCase();
+  return (
+    input.isPanel === true ||
+    Number(input.is_panel_item || 0) === 1 ||
+    subgroup === "panel" ||
+    lowerDescription.includes("solar panel") ||
+    (lowerDescription.includes("panel") && lowerDescription.includes("mono")) ||
+    parsePanelWatt(description, 0) > 0
+  );
+}
+
 function isBatteryDescription(description) {
   const text = String(description || "").toLowerCase();
   return (
@@ -304,17 +318,25 @@ exports.createQuoteFromTemplate = async (req, res) => {
 
   const priceIndex = await getMaterialPriceIndex();
 
-  let items = templateItems.map((it) => applyCatalogPriceToItem({
-    item_no: Number(it.item_no),
-    description: String(it.description || "").trim(),
-    unit: it.unit || null,
-    qty: toNumber(it.qty, 1),
-    base_price: toNumber(it.base_price, 0),
-    margin_rate: markupRate,
-    catalog_material_id: Number(it.catalog_material_id || 0) || null,
-    is_panel_item: it.is_panel_item === 1 ? 1 : 0,
-    panel_watt: toNumber(it.panel_watt, 0)
-  }, priceIndex));
+  let items = templateItems.map((it) => {
+    const description = String(it.description || "").trim();
+    const isPanelItem = isQuotePanelItem({
+      description,
+      is_panel_item: it.is_panel_item,
+      catalog_subgroup: it.catalog_subgroup
+    });
+    return applyCatalogPriceToItem({
+      item_no: Number(it.item_no),
+      description,
+      unit: it.unit || null,
+      qty: toNumber(it.qty, 1),
+      base_price: toNumber(it.base_price, 0),
+      margin_rate: markupRate,
+      catalog_material_id: Number(it.catalog_material_id || 0) || null,
+      is_panel_item: isPanelItem ? 1 : 0,
+      panel_watt: isPanelItem ? parsePanelWatt(description, toNumber(it.panel_watt, 0)) : toNumber(it.panel_watt, 0)
+    }, priceIndex);
+  });
   items = items.map((item) => {
     if (
       effectiveQuoteVatMode === "incl" &&
@@ -340,11 +362,11 @@ exports.createQuoteFromTemplate = async (req, res) => {
       if (isManual) {
         const description = String(input?.description || "").trim();
         if (!description) continue;
-        const lowerDescription = description.toLowerCase();
-        const isPanelManual =
-          lowerDescription.includes("solar panel") ||
-          (lowerDescription.includes("panel") && lowerDescription.includes("mono")) ||
-          /\d{3,4}\s*w/i.test(description);
+        const isPanelManual = isQuotePanelItem({
+          description,
+          isPanel: input?.isPanel === true,
+          catalog_subgroup: input?.subgroup || input?.catalog_subgroup
+        });
 
         const qty = Math.max(0, toNumber(input?.qty, 1));
         if (qty <= 0) continue;
@@ -379,6 +401,13 @@ exports.createQuoteFromTemplate = async (req, res) => {
       const description = String(input?.description ?? base.description ?? "").trim();
       const unitInput = String(input?.unit ?? base.unit ?? "").trim();
 
+      const isPanelItem = isQuotePanelItem({
+        description,
+        isPanel: input?.isPanel === true,
+        is_panel_item: base.is_panel_item,
+        catalog_subgroup: input?.subgroup || input?.catalog_subgroup
+      });
+
       custom.push({
         item_no: itemNo,
         description,
@@ -387,9 +416,9 @@ exports.createQuoteFromTemplate = async (req, res) => {
         base_price: basePrice,
         margin_rate: normalizeRate(input?.marginRate, markupRate),
         catalog_material_id: Number(input?.catalogMaterialId || input?.catalog_material_id || 0) || null,
-        is_panel_item: base.is_panel_item === 1 ? 1 : 0,
+        is_panel_item: isPanelItem ? 1 : 0,
         panel_watt:
-          base.is_panel_item === 1
+          isPanelItem
             ? parsePanelWatt(description, toNumber(base.panel_watt, 0))
             : toNumber(base.panel_watt, 0)
       });
