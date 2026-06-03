@@ -259,7 +259,7 @@ async function syncLinkedTemplateItemPrices(connection, materialIds) {
   if (!ids.length) return 0;
 
   const [result] = await connection.query(
-    `UPDATE template_items ti
+    `UPDATE fm_project_costing_template_items ti
        JOIN material_prices mp ON mp.id = ti.catalog_material_id
         SET ti.base_price = mp.base_price,
             ti.unit = COALESCE(ti.unit, mp.unit)
@@ -270,7 +270,7 @@ async function syncLinkedTemplateItemPrices(connection, materialIds) {
 }
 
 async function relinkTemplateItemsToCatalog(connection) {
-  const [rows] = await connection.query("SELECT * FROM template_items ORDER BY template_id, item_no, id");
+  const [rows] = await connection.query("SELECT * FROM fm_project_costing_template_items ORDER BY template_id, item_no, id");
   const priceIndex = await getMaterialPriceIndex();
   let linkedCount = 0;
   let priceUpdatedCount = 0;
@@ -289,7 +289,7 @@ async function relinkTemplateItemsToCatalog(connection) {
     if (!shouldLink && !shouldUpdatePrice) continue;
 
     await connection.query(
-      `UPDATE template_items
+      `UPDATE fm_project_costing_template_items
           SET catalog_material_id=?,
               base_price=?,
               unit=COALESCE(unit, ?)
@@ -1194,7 +1194,7 @@ exports.removeManualCatalog = async (req, res) => {
     if (rows.length) {
       const materialIds = rows.map((row) => row.id);
       const [detachResult] = await connection.query(
-        "UPDATE template_items SET catalog_material_id=NULL WHERE catalog_material_id IN (?)",
+        "UPDATE fm_project_costing_template_items SET catalog_material_id=NULL WHERE catalog_material_id IN (?)",
         [materialIds]
       );
       detachedTemplateItemCount = Number(detachResult.affectedRows || 0);
@@ -1233,7 +1233,7 @@ exports.remove = async (req, res) => {
   if (!id) return res.status(400).json({ message: "Invalid id" });
 
   const [rows] = await pool.query("SELECT * FROM material_prices WHERE id=? LIMIT 1", [id]);
-  await pool.query("UPDATE template_items SET catalog_material_id=NULL WHERE catalog_material_id=?", [id]);
+  await pool.query("UPDATE fm_project_costing_template_items SET catalog_material_id=NULL WHERE catalog_material_id=?", [id]);
   await pool.query("DELETE FROM material_prices WHERE id=?", [id]);
 
   if (rows.length) {

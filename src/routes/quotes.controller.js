@@ -285,7 +285,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
   }
 
   const [templateItems] = await pool.query(
-    "SELECT * FROM template_items WHERE template_id=? ORDER BY item_no",
+    "SELECT * FROM fm_project_costing_template_items WHERE template_id=? ORDER BY item_no",
     [parsedTemplateId]
   );
   if (!templateItems.length) return res.status(404).json({ message: "Template not found or empty" });
@@ -648,7 +648,7 @@ async function loadQuoteForExport(quoteId) {
       mp.material_name AS catalog_material_name,
       mp.source_section AS catalog_source_section,
       mp.subgroup AS catalog_subgroup
-     FROM template_items ti
+     FROM fm_project_costing_template_items ti
      LEFT JOIN material_prices mp ON mp.id = ti.catalog_material_id
      WHERE ti.template_id=?
      ORDER BY ti.item_no, ti.id`,

@@ -114,7 +114,7 @@ async function fetchTemplateCosting(templateId, options = {}) {
   if (!template) return null;
 
   const [itemRows] = await pool.query(
-    "SELECT * FROM template_items WHERE template_id=? ORDER BY item_no ASC, id ASC",
+    "SELECT * FROM fm_project_costing_template_items WHERE template_id=? ORDER BY item_no ASC, id ASC",
     [id]
   );
   const priceIndex = await getMaterialPriceIndex();

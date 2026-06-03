@@ -198,7 +198,7 @@ exports.importTemplateFromExcel = async ({ filePath, templateName, sheetName }) 
     const panelWatt = wattMatch ? Number(wattMatch[1]) : null;
 
     await pool.query(
-      `INSERT INTO template_items(template_id,item_no,description,unit,qty,base_price,section_key,is_panel_item,panel_watt)
+      `INSERT INTO fm_project_costing_template_items(template_id,item_no,description,unit,qty,base_price,section_key,is_panel_item,panel_watt)
        VALUES (?,?,?,?,?,?,?,?,?)`,
       [
         templateId,

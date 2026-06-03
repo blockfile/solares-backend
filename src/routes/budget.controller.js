@@ -517,7 +517,7 @@ exports.createAccount = async (req, res) => {
     );
     const created = await fetchAccount(result.insertId);
     await safeLogAudit({
-      userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+      userId: req.user.id, actorName: req.user.name, module: "AM",
       action: "ACCOUNT_CREATED",
       details: `Account "${name}" (${type}) created.`,
       ipAddress: getRequestIp(req)
@@ -574,7 +574,7 @@ exports.updateAccount = async (req, res) => {
   ].filter(Boolean);
 
   await safeLogAudit({
-    userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+    userId: req.user.id, actorName: req.user.name, module: "AM",
     action: "ACCOUNT_UPDATED",
     details: changes.length ? `Account "${updated.name}" updated. ${changes.join("; ")}.` : `Account "${updated.name}" saved with no changes.`,
     ipAddress: getRequestIp(req)
@@ -593,7 +593,7 @@ exports.deleteAccount = async (req, res) => {
   if (existing.transaction_count > 0) {
     await pool.query("UPDATE budget_accounts SET is_active=0 WHERE id=?", [id]);
     await safeLogAudit({
-      userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+      userId: req.user.id, actorName: req.user.name, module: "AM",
       action: "ACCOUNT_DEACTIVATED",
       details: `Account "${existing.name}" deactivated (has ${existing.transaction_count} transactions).`,
       ipAddress: getRequestIp(req)
@@ -603,7 +603,7 @@ exports.deleteAccount = async (req, res) => {
 
   await pool.query("DELETE FROM budget_accounts WHERE id=?", [id]);
   await safeLogAudit({
-    userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+    userId: req.user.id, actorName: req.user.name, module: "AM",
     action: "ACCOUNT_DELETED",
     details: `Account "${existing.name}" deleted.`,
     ipAddress: getRequestIp(req)
@@ -638,7 +638,7 @@ exports.exportRawLogsExcel = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "BUDGET",
+    module: "FM",
     action: "RAW_LOGS_EXPORTED",
     details: `${transactions.length} financial raw log transaction(s) exported to Excel.`,
     ipAddress: getRequestIp(req)
@@ -708,7 +708,7 @@ exports.createTransaction = async (req, res) => {
 
     const totalAmount = lines.reduce((sum, line) => sum + toNumber(line.amount, 0), 0);
     await safeLogAudit({
-      userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+      userId: req.user.id, actorName: req.user.name, module: "FM",
       action: lines.length > 1 ? "TRANSACTIONS_CREATED" : "TRANSACTION_CREATED",
       details: lines.length > 1
         ? `${lines.length} ${type === "in" ? "income" : "expense"} transaction(s) totaling ${formatAuditValue(totalAmount)} recorded under "${accountRows[0].name}". Ref: ${formatAuditValue(referenceNo)}.`
@@ -824,7 +824,7 @@ exports.updateTransaction = async (req, res) => {
   ].filter(Boolean);
 
   await safeLogAudit({
-    userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+    userId: req.user.id, actorName: req.user.name, module: "FM",
     action: "TRANSACTION_UPDATED",
     details: changes.length ? `Transaction #${id} updated. ${changes.join("; ")}.` : `Transaction #${id} saved with no changes.`,
     ipAddress: getRequestIp(req)
@@ -845,7 +845,7 @@ exports.deleteTransaction = async (req, res) => {
   await pool.query("DELETE FROM budget_transactions WHERE id=?", [id]);
 
   await safeLogAudit({
-    userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+    userId: req.user.id, actorName: req.user.name, module: "FM",
     action: "TRANSACTION_DELETED",
     details: `Transaction #${id} (${existing.type === "in" ? "income" : "expense"} of ${formatAuditValue(existing.amount)}) deleted from "${existing.account_name}".`,
     ipAddress: getRequestIp(req)
@@ -886,7 +886,7 @@ exports.bulkDeleteTransactions = async (req, res) => {
   );
 
   await safeLogAudit({
-    userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+    userId: req.user.id, actorName: req.user.name, module: "FM",
     action: "TRANSACTIONS_BULK_DELETED",
     details: `${result.affectedRows} transaction(s) deleted. IDs: ${existingRows.map((row) => row.id).join(", ")}.`,
     ipAddress: getRequestIp(req)
@@ -933,7 +933,7 @@ exports.bulkAssignProject = async (req, res) => {
   );
 
   await safeLogAudit({
-    userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+    userId: req.user.id, actorName: req.user.name, module: "FM",
     action: "TRANSACTIONS_PROJECT_ASSIGNED",
     details: `${result.affectedRows} transaction(s) ${projectId ? `assigned to ${formatAuditValue(projectName)}` : "unassigned from project"}.`,
     ipAddress: getRequestIp(req)
@@ -1146,7 +1146,7 @@ exports.createBookkeepingEntry = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "BUDGET",
+    module: "AM",
     action: "BOOKKEEPING_CREATED",
     details: `${BOOKKEEPING_SECTION_LABELS[section]} bookkeeping entry created.`,
     ipAddress: getRequestIp(req)
@@ -1260,7 +1260,7 @@ exports.updateBookkeepingEntry = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "BUDGET",
+    module: "AM",
     action: "BOOKKEEPING_UPDATED",
     details: `${BOOKKEEPING_SECTION_LABELS[section]} bookkeeping entry updated.`,
     ipAddress: getRequestIp(req)
@@ -1285,7 +1285,7 @@ exports.deleteBookkeepingEntry = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "BUDGET",
+    module: "AM",
     action: "BOOKKEEPING_DELETED",
     details: `${BOOKKEEPING_SECTION_LABELS[section]} bookkeeping entry deleted.`,
     ipAddress: getRequestIp(req)
@@ -1475,7 +1475,7 @@ exports.importExcel = async (req, res) => {
     await connection.commit();
 
     await safeLogAudit({
-      userId: req.user.id, actorName: req.user.name, module: "BUDGET",
+      userId: req.user.id, actorName: req.user.name, module: "FM",
       action: "EXCEL_IMPORTED",
       details: `${createdTransactions.length} transaction(s) imported into "${accountRows[0].name}" from Excel.`,
       ipAddress: getRequestIp(req)
@@ -1549,7 +1549,7 @@ exports.deleteImportBatch = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "BUDGET",
+    module: "FM",
     action: "IMPORT_BATCH_DELETED",
     details: `Imported Excel "${existingRows[0].import_source_name || batchId}" deleted with ${result.affectedRows} transaction(s).`,
     ipAddress: getRequestIp(req)
