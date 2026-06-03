@@ -133,7 +133,7 @@ exports.create = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "PACKAGES",
+      module: "SC",
       action: "PACKAGE_PRICE_CREATED",
       details: `${created.scenario_label} created for ${created.template_name}. Package price: ${formatAuditValue(created.package_price)}. Status: ${Number(created.is_active) === 1 ? "active" : "inactive"}.`,
       ipAddress: getRequestIp(req)
@@ -198,7 +198,7 @@ exports.update = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "PACKAGES",
+    module: "SC",
     action: "PACKAGE_PRICE_UPDATED",
     details: changes.length
       ? `${updated.scenario_label} updated for ${updated.template_name}. ${changes.join("; ")}.`
@@ -220,7 +220,7 @@ exports.remove = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "PACKAGES",
+      module: "SC",
       action: "PACKAGE_PRICE_DELETED",
       details: `${existing.scenario_label} deleted from ${existing.template_name}. Package price: ${formatAuditValue(existing.package_price)}.`,
       ipAddress: getRequestIp(req)

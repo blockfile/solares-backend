@@ -259,7 +259,7 @@ async function syncLinkedTemplateItemPrices(connection, materialIds) {
   if (!ids.length) return 0;
 
   const [result] = await connection.query(
-    `UPDATE fm_project_costing_template_items ti
+    `UPDATE project_costing_template_items ti
        JOIN material_prices mp ON mp.id = ti.catalog_material_id
         SET ti.base_price = mp.base_price,
             ti.unit = COALESCE(ti.unit, mp.unit)
@@ -270,7 +270,7 @@ async function syncLinkedTemplateItemPrices(connection, materialIds) {
 }
 
 async function relinkTemplateItemsToCatalog(connection) {
-  const [rows] = await connection.query("SELECT * FROM fm_project_costing_template_items ORDER BY template_id, item_no, id");
+  const [rows] = await connection.query("SELECT * FROM project_costing_template_items ORDER BY template_id, item_no, id");
   const priceIndex = await getMaterialPriceIndex();
   let linkedCount = 0;
   let priceUpdatedCount = 0;
@@ -289,7 +289,7 @@ async function relinkTemplateItemsToCatalog(connection) {
     if (!shouldLink && !shouldUpdatePrice) continue;
 
     await connection.query(
-      `UPDATE fm_project_costing_template_items
+      `UPDATE project_costing_template_items
           SET catalog_material_id=?,
               base_price=?,
               unit=COALESCE(unit, ?)
@@ -409,7 +409,7 @@ exports.createSupplier = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "MATERIALS",
+      module: "SC",
       action: "SUPPLIER_CREATED",
       details: `${created.supplier_name} supplier created. Preferred: ${formatAuditValue(Boolean(created.is_preferred))}.`,
       ipAddress: getRequestIp(req)
@@ -486,7 +486,7 @@ exports.updateSupplier = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "MATERIALS",
+      module: "SC",
       action: "SUPPLIER_UPDATED",
       details: changes.length
         ? `${updated.supplier_name} updated. ${changes.join("; ")}.`
@@ -572,7 +572,7 @@ exports.removeSupplier = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "MATERIALS",
+    module: "SC",
     action: "SUPPLIER_DELETED",
     details: `${deletedSupplier.supplier_name} supplier deleted. Removed ${deletedMaterialCount} material price rows and ${deletedPriceListCount} price list uploads.`,
     ipAddress: getRequestIp(req)
@@ -899,7 +899,7 @@ exports.importSupplierPriceList = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "MATERIALS",
+      module: "SC",
       action: "SUPPLIER_PRICE_LIST_IMPORTED",
       details: `${supplier.supplier_name} price list imported. File: ${formatAuditValue(req.file.originalname)}. Imported: ${items.length}. Inserted: ${insertedCount}. Updated: ${updatedCount}. Removed: ${removedCount}. Auto-sync: ${formatAuditValue(applyToCatalog)}.`,
       ipAddress: getRequestIp(req)
@@ -1005,7 +1005,7 @@ exports.selectSupplierPrice = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "MATERIALS",
+      module: "SC",
       action: "SUPPLIER_PRICE_SELECTED",
       details: `${material.material_name} now uses ${chosen.supplier_name} price ${formatAuditValue(chosen.base_price)}.`,
       ipAddress: getRequestIp(req)
@@ -1032,7 +1032,7 @@ exports.syncTemplateCatalogLinks = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "MATERIALS",
+      module: "SC",
       action: "TEMPLATE_CATALOG_LINKS_SYNCED",
       details: `Template catalog links synced. Checked: ${result.checkedCount}. Linked: ${result.linkedCount}. Price updates: ${result.priceUpdatedCount}.`,
       ipAddress: getRequestIp(req)
@@ -1092,7 +1092,7 @@ exports.create = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "MATERIALS",
+    module: "SC",
     action: "MATERIAL_CREATED",
     details: `${created.material_name} created. Category: ${formatAuditValue(created.category)}. Base price: ${formatAuditValue(created.base_price)}. Unit: ${formatAuditValue(created.unit)}.`,
     ipAddress: getRequestIp(req)
@@ -1168,7 +1168,7 @@ exports.update = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "MATERIALS",
+    module: "SC",
     action: "MATERIAL_UPDATED",
     details: changes.length
       ? `${updated.material_name} updated. ${changes.join("; ")}.`
@@ -1194,7 +1194,7 @@ exports.removeManualCatalog = async (req, res) => {
     if (rows.length) {
       const materialIds = rows.map((row) => row.id);
       const [detachResult] = await connection.query(
-        "UPDATE fm_project_costing_template_items SET catalog_material_id=NULL WHERE catalog_material_id IN (?)",
+        "UPDATE project_costing_template_items SET catalog_material_id=NULL WHERE catalog_material_id IN (?)",
         [materialIds]
       );
       detachedTemplateItemCount = Number(detachResult.affectedRows || 0);
@@ -1214,7 +1214,7 @@ exports.removeManualCatalog = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "MATERIALS",
+      module: "SC",
       action: "MANUAL_CATALOG_DELETED",
       details: `${rows.length} manual catalog material${rows.length === 1 ? "" : "s"} deleted. Detached ${detachedTemplateItemCount} template item${detachedTemplateItemCount === 1 ? "" : "s"}.`,
       ipAddress: getRequestIp(req)
@@ -1233,14 +1233,14 @@ exports.remove = async (req, res) => {
   if (!id) return res.status(400).json({ message: "Invalid id" });
 
   const [rows] = await pool.query("SELECT * FROM material_prices WHERE id=? LIMIT 1", [id]);
-  await pool.query("UPDATE fm_project_costing_template_items SET catalog_material_id=NULL WHERE catalog_material_id=?", [id]);
+  await pool.query("UPDATE project_costing_template_items SET catalog_material_id=NULL WHERE catalog_material_id=?", [id]);
   await pool.query("DELETE FROM material_prices WHERE id=?", [id]);
 
   if (rows.length) {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "MATERIALS",
+      module: "SC",
       action: "MATERIAL_DELETED",
       details: `${rows[0].material_name} deleted. Category: ${formatAuditValue(rows[0].category)}. Base price: ${formatAuditValue(rows[0].base_price)}.`,
       ipAddress: getRequestIp(req)

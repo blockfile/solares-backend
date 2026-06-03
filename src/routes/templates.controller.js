@@ -116,7 +116,7 @@ async function fetchTemplateRow(id) {
       qt.created_at,
       COUNT(ti.id) AS item_count
      FROM quote_templates qt
-     LEFT JOIN fm_project_costing_template_items ti ON ti.template_id = qt.id
+     LEFT JOIN project_costing_template_items ti ON ti.template_id = qt.id
      WHERE qt.id=?
      GROUP BY qt.id
      LIMIT 1`,
@@ -228,7 +228,7 @@ exports.importExcel = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "TEMPLATES",
+    module: "SC",
     action: "TEMPLATE_IMPORTED",
     details: `${importedTemplate?.name || templateName} imported from Excel sheet ${formatAuditValue(sheetName)} with ${formatAuditValue(result.imported)} item(s).`,
     ipAddress: getRequestIp(req)
@@ -260,7 +260,7 @@ exports.createTemplate = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "TEMPLATES",
+    module: "SC",
     action: "TEMPLATE_CREATED",
     details: `${row.name} created. Sheet name: ${formatAuditValue(row.sheet_name)}.`,
     ipAddress: getRequestIp(req)
@@ -297,7 +297,7 @@ exports.duplicateTemplate = async (req, res) => {
 
     const [sourceItems] = await conn.query(
       `SELECT item_no, description, unit, qty, base_price, section_key, catalog_material_id, is_panel_item, panel_watt
-       FROM fm_project_costing_template_items
+       FROM project_costing_template_items
        WHERE template_id=?
        ORDER BY item_no ASC, id ASC`,
       [id]
@@ -305,7 +305,7 @@ exports.duplicateTemplate = async (req, res) => {
 
     for (const item of sourceItems) {
       await conn.query(
-        `INSERT INTO fm_project_costing_template_items(template_id, item_no, description, unit, qty, base_price, section_key, catalog_material_id, is_panel_item, panel_watt)
+        `INSERT INTO project_costing_template_items(template_id, item_no, description, unit, qty, base_price, section_key, catalog_material_id, is_panel_item, panel_watt)
          VALUES (?,?,?,?,?,?,?,?,?,?)`,
         [
           newTemplateId,
@@ -350,7 +350,7 @@ exports.duplicateTemplate = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "TEMPLATES",
+      module: "SC",
       action: "TEMPLATE_DUPLICATED",
       details: `${source.name} duplicated as ${created.name} with ${formatAuditValue(created.item_count)} item(s).`,
       ipAddress: getRequestIp(req)
@@ -374,7 +374,7 @@ exports.listTemplates = async (req, res) => {
       SUM(CASE WHEN LOWER(ti.description) LIKE '%inverter%' THEN 1 ELSE 0 END) AS inverter_hits,
       SUM(CASE WHEN LOWER(ti.description) LIKE '%panel%' THEN 1 ELSE 0 END) AS panel_hits
      FROM quote_templates qt
-     LEFT JOIN fm_project_costing_template_items ti ON ti.template_id = qt.id
+     LEFT JOIN project_costing_template_items ti ON ti.template_id = qt.id
      GROUP BY qt.id
      ORDER BY qt.id DESC`
   );
@@ -475,7 +475,7 @@ exports.updateTemplate = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "TEMPLATES",
+    module: "SC",
     action: "TEMPLATE_UPDATED",
     details: changes.length
       ? `${row.name} updated. ${changes.join("; ")}.`
@@ -531,14 +531,14 @@ exports.deleteTemplate = async (req, res) => {
       }
 
       await conn.query("DELETE FROM package_prices WHERE template_id=?", [id]);
-      await conn.query("DELETE FROM fm_project_costing_template_items WHERE template_id=?", [id]);
+      await conn.query("DELETE FROM project_costing_template_items WHERE template_id=?", [id]);
       await conn.query("DELETE FROM quote_templates WHERE id=?", [id]);
       await conn.commit();
 
       await safeLogAudit({
         userId: req.user.id,
         actorName: req.user.name,
-        module: "TEMPLATES",
+        module: "SC",
         action: "TEMPLATE_DELETED",
         details: `${existing.name} deleted with force. Removed ${formatAuditValue(existing.item_count)} template item(s) and ${formatAuditValue(quoteIds.length)} related quote(s).`,
         ipAddress: getRequestIp(req)
@@ -561,7 +561,7 @@ exports.deleteTemplate = async (req, res) => {
   try {
     await conn.beginTransaction();
     await conn.query("DELETE FROM package_prices WHERE template_id=?", [id]);
-    await conn.query("DELETE FROM fm_project_costing_template_items WHERE template_id=?", [id]);
+    await conn.query("DELETE FROM project_costing_template_items WHERE template_id=?", [id]);
     await conn.query("DELETE FROM quote_templates WHERE id=?", [id]);
     await conn.commit();
   } catch (error) {
@@ -574,7 +574,7 @@ exports.deleteTemplate = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "TEMPLATES",
+    module: "SC",
     action: "TEMPLATE_DELETED",
     details: `${existing.name} deleted. Removed ${formatAuditValue(existing.item_count)} template item(s).`,
     ipAddress: getRequestIp(req)
@@ -588,7 +588,7 @@ exports.listTemplateItems = async (req, res) => {
   if (!templateId) return res.status(400).json({ message: "Invalid template id" });
 
   const [rows] = await pool.query(
-    "SELECT * FROM fm_project_costing_template_items WHERE template_id=? ORDER BY item_no",
+    "SELECT * FROM project_costing_template_items WHERE template_id=? ORDER BY item_no",
     [templateId]
   );
   const priceIndex = await getMaterialPriceIndex();
@@ -605,7 +605,7 @@ exports.exportTemplateExcel = async (req, res) => {
   if (!template) return res.status(404).json({ message: "Template not found" });
 
   const [itemRows, packageRows, priceIndex] = await Promise.all([
-    pool.query("SELECT * FROM fm_project_costing_template_items WHERE template_id=? ORDER BY item_no ASC, id ASC", [templateId]),
+    pool.query("SELECT * FROM project_costing_template_items WHERE template_id=? ORDER BY item_no ASC, id ASC", [templateId]),
     pool.query(
       `SELECT scenario_label, package_price, is_active
        FROM package_prices
@@ -630,7 +630,7 @@ exports.exportTemplateExcel = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "TEMPLATES",
+    module: "SC",
     action: "TEMPLATE_EXPORTED",
     details: `${template.name} exported to costing workbook (${vatMode === "incl" ? "VAT included" : "VAT excluded"}).`,
     ipAddress: getRequestIp(req)
@@ -658,7 +658,7 @@ exports.exportTemplateExcelBundle = async (req, res) => {
       qt.created_at,
       COUNT(ti.id) AS item_count
      FROM quote_templates qt
-     LEFT JOIN fm_project_costing_template_items ti ON ti.template_id = qt.id
+     LEFT JOIN project_costing_template_items ti ON ti.template_id = qt.id
      GROUP BY qt.id
      ORDER BY qt.id DESC`
   );
@@ -686,7 +686,7 @@ exports.exportTemplateExcelBundle = async (req, res) => {
   const bundlePayload = await Promise.all(
     relatedTemplates.map(async (template) => {
       const [itemRows, packageRows] = await Promise.all([
-        pool.query("SELECT * FROM fm_project_costing_template_items WHERE template_id=? ORDER BY item_no ASC, id ASC", [template.id]),
+        pool.query("SELECT * FROM project_costing_template_items WHERE template_id=? ORDER BY item_no ASC, id ASC", [template.id]),
         pool.query(
           `SELECT scenario_label, package_price, is_active
            FROM package_prices
@@ -718,7 +718,7 @@ exports.exportTemplateExcelBundle = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "TEMPLATES",
+    module: "SC",
     action: "TEMPLATE_BUNDLE_EXPORTED",
     details: `${selectedTemplate.name} exported as multi-tab workbook with ${formatAuditValue(bundlePayload.length)} related template(s) (${vatMode === "incl" ? "VAT included" : "VAT excluded"}).`,
     ipAddress: getRequestIp(req)
@@ -753,7 +753,7 @@ exports.createTemplateItem = async (req, res) => {
   let itemNo = inputItemNo;
   if (!itemNo) {
     const [maxRows] = await pool.query(
-      "SELECT COALESCE(MAX(item_no), 0) AS max_item_no FROM fm_project_costing_template_items WHERE template_id=?",
+      "SELECT COALESCE(MAX(item_no), 0) AS max_item_no FROM project_costing_template_items WHERE template_id=?",
       [templateId]
     );
     itemNo = Number(maxRows[0]?.max_item_no || 0) + 1;
@@ -761,7 +761,7 @@ exports.createTemplateItem = async (req, res) => {
 
   const panelMeta = inferPanelMeta(description);
   const [result] = await pool.query(
-    `INSERT INTO fm_project_costing_template_items(template_id, item_no, description, unit, qty, base_price, section_key, catalog_material_id, is_panel_item, panel_watt)
+    `INSERT INTO project_costing_template_items(template_id, item_no, description, unit, qty, base_price, section_key, catalog_material_id, is_panel_item, panel_watt)
      VALUES (?,?,?,?,?,?,?,?,?,?)`,
     [
       templateId,
@@ -777,13 +777,13 @@ exports.createTemplateItem = async (req, res) => {
     ]
   );
 
-  const [rows] = await pool.query("SELECT * FROM fm_project_costing_template_items WHERE id=? LIMIT 1", [result.insertId]);
+  const [rows] = await pool.query("SELECT * FROM project_costing_template_items WHERE id=? LIMIT 1", [result.insertId]);
   const created = rows[0];
 
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "TEMPLATES",
+    module: "SC",
     action: "TEMPLATE_ITEM_CREATED",
     details: `${template.name}: added item ${formatAuditValue(created.item_no)} (${created.description}) in ${humanizeSectionKey(created.section_key)}. Qty: ${formatAuditValue(created.qty)}. Base price: ${formatAuditValue(created.base_price)}.`,
     ipAddress: getRequestIp(req)
@@ -801,7 +801,7 @@ exports.updateTemplateItem = async (req, res) => {
   if (!template) return res.status(404).json({ message: "Template not found" });
 
   const [rows] = await pool.query(
-    "SELECT * FROM fm_project_costing_template_items WHERE id=? AND template_id=? LIMIT 1",
+    "SELECT * FROM project_costing_template_items WHERE id=? AND template_id=? LIMIT 1",
     [itemId, templateId]
   );
   if (!rows.length) return res.status(404).json({ message: "Template item not found" });
@@ -837,7 +837,7 @@ exports.updateTemplateItem = async (req, res) => {
 
   const panelMeta = inferPanelMeta(description);
   await pool.query(
-    `UPDATE fm_project_costing_template_items
+    `UPDATE project_costing_template_items
      SET item_no=?, description=?, unit=?, qty=?, base_price=?, section_key=?, catalog_material_id=?, is_panel_item=?, panel_watt=?
      WHERE id=? AND template_id=?`,
     [
@@ -855,7 +855,7 @@ exports.updateTemplateItem = async (req, res) => {
     ]
   );
 
-  const [updatedRows] = await pool.query("SELECT * FROM fm_project_costing_template_items WHERE id=? LIMIT 1", [itemId]);
+  const [updatedRows] = await pool.query("SELECT * FROM project_costing_template_items WHERE id=? LIMIT 1", [itemId]);
   const updated = updatedRows[0];
   const changes = [
     describeAuditChange("Item no", existing.item_no, updated.item_no),
@@ -870,7 +870,7 @@ exports.updateTemplateItem = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "TEMPLATES",
+    module: "SC",
     action: "TEMPLATE_ITEM_UPDATED",
     details: changes.length
       ? `${template.name}: item ${formatAuditValue(updated.item_no)} updated. ${changes.join("; ")}.`
@@ -890,13 +890,13 @@ exports.deleteTemplateItem = async (req, res) => {
   if (!template) return res.status(404).json({ message: "Template not found" });
 
   const [rows] = await pool.query(
-    "SELECT * FROM fm_project_costing_template_items WHERE id=? AND template_id=? LIMIT 1",
+    "SELECT * FROM project_costing_template_items WHERE id=? AND template_id=? LIMIT 1",
     [itemId, templateId]
   );
   const existing = rows[0] || null;
 
   const [result] = await pool.query(
-    "DELETE FROM fm_project_costing_template_items WHERE id=? AND template_id=?",
+    "DELETE FROM project_costing_template_items WHERE id=? AND template_id=?",
     [itemId, templateId]
   );
   if (!result.affectedRows) return res.status(404).json({ message: "Template item not found" });
@@ -905,7 +905,7 @@ exports.deleteTemplateItem = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "TEMPLATES",
+      module: "SC",
       action: "TEMPLATE_ITEM_DELETED",
       details: `${template.name}: deleted item ${formatAuditValue(existing.item_no)} (${existing.description}) from ${humanizeSectionKey(existing.section_key)}.`,
       ipAddress: getRequestIp(req)

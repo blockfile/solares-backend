@@ -285,7 +285,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
   }
 
   const [templateItems] = await pool.query(
-    "SELECT * FROM fm_project_costing_template_items WHERE template_id=? ORDER BY item_no",
+    "SELECT * FROM project_costing_template_items WHERE template_id=? ORDER BY item_no",
     [parsedTemplateId]
   );
   if (!templateItems.length) return res.status(404).json({ message: "Template not found or empty" });
@@ -533,7 +533,7 @@ exports.createQuoteFromTemplate = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "QUOTES",
+    module: "CRM",
     action: "QUOTE_CREATED",
     details: `${quoteRef} created for ${customerName} from ${templateName}. Pricing mode: ${pricingMode}.${packageScenarioLabel ? ` Package: ${packageScenarioLabel}.` : ""} Total: ${subtotal}.`,
     ipAddress: getRequestIp(req)
@@ -608,7 +608,7 @@ exports.deleteQuote = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "QUOTES",
+      module: "CRM",
       action: "QUOTE_DELETED",
       details: `${quote.quote_ref} for ${quote.customer_name || "N/A"} deleted. Removed ${itemCount} items. Created by ${quote.created_by_name || quote.created_by_username || "unknown"}. Total: ${toNumber(quote.total, 0)}.`,
       ipAddress: getRequestIp(req)
@@ -648,7 +648,7 @@ async function loadQuoteForExport(quoteId) {
       mp.material_name AS catalog_material_name,
       mp.source_section AS catalog_source_section,
       mp.subgroup AS catalog_subgroup
-     FROM fm_project_costing_template_items ti
+     FROM project_costing_template_items ti
      LEFT JOIN material_prices mp ON mp.id = ti.catalog_material_id
      WHERE ti.template_id=?
      ORDER BY ti.item_no, ti.id`,
@@ -690,7 +690,7 @@ exports.exportCustomerExcel = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "QUOTES",
+    module: "CRM",
     action: "QUOTE_CUSTOMER_EXCEL_EXPORTED",
     details: `${payload.quote.quote_ref} exported as customer Excel.`,
     ipAddress: getRequestIp(req)
@@ -711,7 +711,7 @@ exports.exportCustomerPdf = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "QUOTES",
+    module: "CRM",
     action: "QUOTE_CUSTOMER_PDF_EXPORTED",
     details: `${payload.quote.quote_ref} exported as customer PDF.`,
     ipAddress: getRequestIp(req)
@@ -732,7 +732,7 @@ exports.exportCompanyExcel = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "QUOTES",
+    module: "CRM",
     action: "QUOTE_COMPANY_EXCEL_EXPORTED",
     details: `${payload.quote.quote_ref} exported as company Excel.`,
     ipAddress: getRequestIp(req)
@@ -753,7 +753,7 @@ exports.exportQuoteExcel = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "QUOTES",
+    module: "CRM",
     action: "QUOTE_EXPORTED",
     details: `${payload.quote.quote_ref} exported as default Excel.`,
     ipAddress: getRequestIp(req)

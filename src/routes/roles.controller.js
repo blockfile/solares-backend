@@ -42,7 +42,7 @@ exports.create = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "ROLES",
+    module: "SA",
     action: "ROLE_CREATED",
     details: `${created.label} created with ${created.modules.length} module permission(s).`,
     ipAddress: getRequestIp(req)
@@ -96,7 +96,7 @@ exports.update = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "ROLES",
+    module: "SA",
     action: "ROLE_UPDATED",
     details: `${updated.label} updated with ${updated.modules.length} module permission(s).`,
     ipAddress: getRequestIp(req)

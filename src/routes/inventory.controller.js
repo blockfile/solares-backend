@@ -296,7 +296,7 @@ exports.create = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "INVENTORY",
+      module: "SC",
       action: "ITEM_CREATED",
       details: `${created.item_name} created. Opening stock: ${formatAuditValue(openingQuantity)} ${formatAuditValue(created.unit)}. Minimum: ${formatAuditValue(created.minimum_quantity)}.`,
       ipAddress: getRequestIp(req)
@@ -384,7 +384,7 @@ exports.update = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "INVENTORY",
+    module: "SC",
     action: "ITEM_UPDATED",
     details: changes.length
       ? `${updated.item_name} updated. ${changes.join("; ")}.`
@@ -407,7 +407,7 @@ exports.remove = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "INVENTORY",
+    module: "SC",
     action: "ITEM_DEACTIVATED",
     details: `${existing.item_name} deactivated. Stock on hand: ${formatAuditValue(existing.current_quantity)} ${formatAuditValue(existing.unit)}.`,
     ipAddress: getRequestIp(req)
@@ -513,7 +513,7 @@ exports.createMovement = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "INVENTORY",
+      module: "SC",
       action,
       details: `${item.item_name}: ${movementType.replace("_", " ")} ${formatAuditValue(quantity)} ${formatAuditValue(item.unit)}. Stock now ${formatAuditValue(item.current_quantity)}. Reference: ${formatAuditValue(referenceNo)}.`,
       ipAddress: getRequestIp(req)

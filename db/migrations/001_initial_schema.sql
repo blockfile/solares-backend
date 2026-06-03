@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS quote_templates (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS fm_project_costing_template_items (
+CREATE TABLE IF NOT EXISTS project_costing_template_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   template_id INT NOT NULL,
   item_no INT NOT NULL,

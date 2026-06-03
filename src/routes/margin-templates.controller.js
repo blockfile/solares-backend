@@ -77,7 +77,7 @@ exports.create = async (req, res) => {
     await safeLogAudit({
       userId: req.user.id,
       actorName: req.user.name,
-      module: "MARGINS",
+      module: "SC",
       action: "MARGIN_TEMPLATE_CREATED",
       details: `${created.name} created. Inverter ${formatAuditValue(created.inverter_margin)}, Panel ${formatAuditValue(created.panel_margin)}, Battery ${formatAuditValue(created.battery_margin)}, Safety ${formatAuditValue(created.safety_margin)}, Mounting ${formatAuditValue(created.mounting_margin)}, Installation ${formatAuditValue(created.installation_margin)}.`,
       ipAddress: getRequestIp(req)
@@ -151,7 +151,7 @@ exports.update = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "MARGINS",
+    module: "SC",
     action: "MARGIN_TEMPLATE_UPDATED",
     details: changes.length
       ? `${updated.name} updated. ${changes.join("; ")}.`
@@ -174,7 +174,7 @@ exports.remove = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "MARGINS",
+    module: "SC",
     action: "MARGIN_TEMPLATE_DELETED",
     details: `${existing.name} deleted.`,
     ipAddress: getRequestIp(req)

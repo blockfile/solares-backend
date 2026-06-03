@@ -124,7 +124,7 @@ exports.create = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "USERS",
+    module: "SA",
     action: "USER_CREATED",
     details: `${created.name} (${created.username}) was created as ${created.roleLabel} with a generated temporary password.`,
     ipAddress: getRequestIp(req)
@@ -228,7 +228,7 @@ exports.update = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "USERS",
+    module: "SA",
     action: "USER_UPDATED",
     details: changeSummary.join(", "),
     ipAddress: getRequestIp(req)
@@ -348,7 +348,7 @@ exports.remove = async (req, res) => {
   await safeLogAudit({
     userId: req.user.id,
     actorName: req.user.name,
-    module: "USERS",
+    module: "SA",
     action: "USER_DELETED",
     details: `${existing.name} (${existing.username}) was deleted.`,
     ipAddress: getRequestIp(req)
