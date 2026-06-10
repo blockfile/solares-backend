@@ -353,6 +353,7 @@ async function ensureBookkeepingSchema() {
 
 function parseTransactionFilters(query = {}, { defaultLimit = 200, maxLimit = 500 } = {}) {
   const requestedLimit = Number(query.limit || defaultLimit);
+  const dateSort = String(query.dateSort || "").toLowerCase() === "asc" ? "asc" : "desc";
   return {
     accountId: Number(query.accountId || 0),
     projectId: Number(query.projectId || 0),
@@ -360,6 +361,7 @@ function parseTransactionFilters(query = {}, { defaultLimit = 200, maxLimit = 50
     dateFrom: normalizeDate(query.dateFrom),
     dateTo: normalizeDate(query.dateTo),
     q: String(query.q || "").trim(),
+    dateSort,
     limit: Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : defaultLimit, 1), maxLimit)
   };
 }
@@ -419,6 +421,7 @@ function buildTransactionWhere(filters) {
 
 async function fetchTransactionRows(filters) {
   const { where, params } = buildTransactionWhere(filters);
+  const dateSortDirection = filters.dateSort === "asc" ? "ASC" : "DESC";
 
   const [rows] = await pool.query(
     `SELECT t.*,
@@ -433,7 +436,7 @@ async function fetchTransactionRows(filters) {
        LEFT JOIN customers c ON c.id = p.customer_id
        LEFT JOIN users u ON u.id = t.created_by
        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-      ORDER BY t.transaction_date DESC, t.id DESC
+      ORDER BY t.transaction_date ${dateSortDirection}, t.id ${dateSortDirection}
       LIMIT ${filters.limit}`,
     params
   );
