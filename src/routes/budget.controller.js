@@ -210,6 +210,7 @@ function serializeTransaction(row) {
   if (!row) return null;
   return {
     ...row,
+    transaction_description: row.transaction_description || "",
     amount: formatMoney(row.amount),
     price: row.price == null ? null : formatMoney(row.price),
     quantity: row.quantity == null ? null : toNumber(row.quantity, 0),
@@ -235,6 +236,13 @@ async function ensureImportTrackingSchema() {
       if (!sourceCols.length) {
         await pool.query(
           "ALTER TABLE budget_transactions ADD COLUMN import_source_name VARCHAR(255) NULL AFTER import_batch_id"
+        );
+      }
+
+      const [descriptionCols] = await pool.query("SHOW COLUMNS FROM budget_transactions LIKE 'transaction_description'");
+      if (!descriptionCols.length) {
+        await pool.query(
+          "ALTER TABLE budget_transactions ADD COLUMN transaction_description VARCHAR(500) NULL AFTER discount"
         );
       }
 
@@ -412,8 +420,8 @@ function buildTransactionWhere(filters) {
   if (filters.dateTo)   { where.push("t.transaction_date <= ?"); params.push(filters.dateTo); }
   if (filters.q) {
     const like = `%${filters.q}%`;
-    where.push("(t.description LIKE ? OR t.reference_no LIKE ? OR t.notes LIKE ? OR a.name LIKE ? OR p.project_name LIKE ? OR c.name LIKE ?)");
-    params.push(like, like, like, like, like, like);
+    where.push("(t.transaction_description LIKE ? OR t.description LIKE ? OR t.reference_no LIKE ? OR t.notes LIKE ? OR a.name LIKE ? OR p.project_name LIKE ? OR c.name LIKE ?)");
+    params.push(like, like, like, like, like, like, like);
   }
 
   return { where, params };
@@ -668,6 +676,7 @@ exports.createTransaction = async (req, res) => {
   const transactionDate = normalizeDate(req.body.transactionDate) || normalizeDate(new Date().toISOString());
   if (!transactionDate) return res.status(400).json({ message: "Invalid transactionDate" });
 
+  const transactionDescription = cleanText(req.body.transactionDescription ?? req.body.transaction_description, 500);
   const referenceNo = cleanText(req.body.referenceNo, 100);
   const projectId = Number(req.body.projectId || 0) || null;
   const requestedLines = Array.isArray(req.body.items)
@@ -698,9 +707,9 @@ exports.createTransaction = async (req, res) => {
     for (const line of lines) {
       const [result] = await connection.query(
         `INSERT INTO budget_transactions
-           (account_id, type, amount, price, quantity, discount, description, reference_no, transaction_date, notes, project_id, created_by)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [accountId, type, line.amount, line.price, line.quantity, line.discount, line.description, referenceNo, transactionDate, line.notes, projectId, req.user.id]
+           (account_id, type, amount, price, quantity, discount, transaction_description, description, reference_no, transaction_date, notes, project_id, created_by)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [accountId, type, line.amount, line.price, line.quantity, line.discount, transactionDescription, line.description, referenceNo, transactionDate, line.notes, projectId, req.user.id]
       );
       const created = await fetchTransaction(result.insertId, connection);
       if (created) createdTransactions.push(created);
@@ -791,6 +800,11 @@ exports.updateTransaction = async (req, res) => {
   const description = Object.prototype.hasOwnProperty.call(req.body, "description")
     ? cleanText(req.body.description, 500)
     : existing.description;
+  const transactionDescription = Object.prototype.hasOwnProperty.call(req.body, "transactionDescription")
+    ? cleanText(req.body.transactionDescription, 500)
+    : Object.prototype.hasOwnProperty.call(req.body, "transaction_description")
+      ? cleanText(req.body.transaction_description, 500)
+      : existing.transaction_description;
   const referenceNo = Object.prototype.hasOwnProperty.call(req.body, "referenceNo")
     ? cleanText(req.body.referenceNo, 100)
     : existing.reference_no;
@@ -808,9 +822,9 @@ exports.updateTransaction = async (req, res) => {
 
   await pool.query(
     `UPDATE budget_transactions
-        SET account_id=?, type=?, amount=?, price=?, quantity=?, discount=?, description=?, reference_no=?, transaction_date=?, notes=?, project_id=?
+        SET account_id=?, type=?, amount=?, price=?, quantity=?, discount=?, transaction_description=?, description=?, reference_no=?, transaction_date=?, notes=?, project_id=?
       WHERE id=?`,
-    [accountId, type, amount, price, quantity, discount == null ? null : discountAmount, description, referenceNo, transactionDate, notes, projectId, id]
+    [accountId, type, amount, price, quantity, discount == null ? null : discountAmount, transactionDescription, description, referenceNo, transactionDate, notes, projectId, id]
   );
 
   const updated = await fetchTransaction(id);
@@ -821,6 +835,7 @@ exports.updateTransaction = async (req, res) => {
     describeAuditChange("Qty", existing.quantity, updated.quantity),
     describeAuditChange("Discount", existing.discount, updated.discount),
     describeAuditChange("Date", existing.transaction_date, updated.transaction_date),
+    describeAuditChange("Transaction Description", existing.transaction_description, updated.transaction_description),
     describeAuditChange("Description", existing.description, updated.description),
     describeAuditChange("Reference", existing.reference_no, updated.reference_no),
     describeAuditChange("Project", existing.project_name, updated.project_name)
